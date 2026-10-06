@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+.uv_cache/
+data/
+features/
+outputs/
+models/*.joblib
+*.npz
+*.log
+Omni-Fake.pdf
+LOCAL_ACCESS_NOTES.md

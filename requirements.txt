@@ -1,0 +1,13 @@
+torch
+torchvision
+torchaudio
+transformers>=4.44
+huggingface_hub
+datasets
+scikit-learn
+joblib
+numpy
+pillow
+opencv-python-headless
+tqdm
+pyyaml
