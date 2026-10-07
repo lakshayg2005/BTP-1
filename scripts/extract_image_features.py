@@ -16,7 +16,7 @@ from PIL import Image
 from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from src.image.ai_detector import ClipEncoder  # noqa: E402
+from src.image.ai_detector import DEFAULT_ENCODER, ClipEncoder  # noqa: E402
 from src.image.augment import random_daily_life  # noqa: E402
 
 EXTS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
@@ -64,7 +64,8 @@ def main():
     flush()
 
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
-    np.savez_compressed(args.out, X=np.concatenate(X).astype(np.float16), y=np.array(Y), paths=np.array(P), aug=np.array(A))
+    np.savez_compressed(args.out, X=np.concatenate(X).astype(np.float16), y=np.array(Y), paths=np.array(P),
+                        aug=np.array(A), encoder=np.array(DEFAULT_ENCODER))
     print(f"saved {args.out}: {sum(len(x) for x in X)} vectors")
 
 
