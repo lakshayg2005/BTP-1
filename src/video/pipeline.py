@@ -70,7 +70,7 @@ class VideoExpert:
             Evidence("video.ai_mean", "frame_detector", "score", round(float(p.mean()), 3),
                      "ai_generated" if p.mean() >= 0.5 else "real", abs(float(p.mean()) - 0.5) * 2,
                      f"Across {len(frames)} sampled frames the average AI-generation probability is {p.mean():.0%}."),
-            Evidence("video.timeline", "frame_detector", "segments", [(round(a, 1), round(float(b), 2)) for a, b in zip(times, p)],
+            Evidence("video.timeline", "frame_detector", "segments", [(round(float(a), 1), round(float(b), 2)) for a, b in zip(times, p)],
                      "edited" if 0 < ai_frac < 0.6 else "neutral", ai_frac,
                      f"{ai_frac:.0%} of frames look AI-generated; the most suspicious frame is at {times[worst]:.1f}s ({p[worst]:.0%})."),
             Evidence("video.temporal_jump", "frame_detector", "score", round(jump, 3), "edited" if jump >= 0.5 else "neutral",
@@ -91,7 +91,7 @@ class VideoExpert:
                                f"The soundtrack's voice has a {pa:.0%} probability of being AI-generated or cloned."))
 
         label, conf, probs = self._fuse(float(p.mean()), ai_frac, float(edit.max()), audio_v)
-        return Verdict(label, conf, probs, ev, artifacts={"frame_times": str([round(x, 1) for x in times])})
+        return Verdict(label, conf, probs, ev, artifacts={"frame_times": str([round(float(x), 1) for x in times])})
 
     def _fuse(self, p_mean, ai_frac, edit_max, audio_v):
         t = self.t

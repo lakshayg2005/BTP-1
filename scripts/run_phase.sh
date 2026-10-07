@@ -9,6 +9,7 @@ export HF_HOME="${HF_HOME:-$PWD/.hf_home}" UV_CACHE_DIR="${UV_CACHE_DIR:-$PWD/.u
 mkdir -p logs features models "$TMPDIR"
 PY="${PY:-.venv/bin/python}"
 IMG_TRAIN="${IMG_TRAIN:-1500}"; IMG_TEST="${IMG_TEST:-300}"
+SID_TRAIN="${SID_TRAIN:-1000}"; SID_TEST="${SID_TEST:-300}"
 TXT_TRAIN="${TXT_TRAIN:-2000}"; TXT_TEST="${TXT_TEST:-400}"
 
 step() { [ -f "$1" ] && echo "[skip] $1 exists" || { echo "[run] $*"; shift; "$@"; }; }
@@ -21,9 +22,13 @@ case "${1:-image}" in
   image)
     step data/images/train/manifest.csv $PY -m scripts.download_openfake --split train --per-label "$IMG_TRAIN"
     step data/images/test/manifest.csv  $PY -m scripts.download_openfake --split test  --per-label "$IMG_TEST"
+    step data/sid/train/.done bash -c "$PY -m scripts.download_sidset --split train --per-class $SID_TRAIN && touch data/sid/train/.done"
+    step data/sid/test/.done  bash -c "$PY -m scripts.download_sidset --split validation --out-split test --per-class $SID_TEST && touch data/sid/test/.done"
     step features/img_train.npz $PY -m scripts.extract_image_features --root data/images/train --out features/img_train.npz --aug 2
     step features/img_test.npz  $PY -m scripts.extract_image_features --root data/images/test  --out features/img_test.npz  --aug 1
-    $PY -m scripts.train_head --train features/img_train.npz --test features/img_test.npz --out models/image_head.joblib
+    step features/sid_train.npz $PY -m scripts.extract_image_features --root data/sid/train --out features/sid_train.npz --aug 1
+    step features/sid_test.npz  $PY -m scripts.extract_image_features --root data/sid/test  --out features/sid_test.npz
+    $PY -m scripts.train_head --train features/img_train.npz features/sid_train.npz --test features/img_test.npz features/sid_test.npz --out models/image_head.joblib
     ;;
   tamper)
     step models/tamper_head.pt $PY -m scripts.train_tamper

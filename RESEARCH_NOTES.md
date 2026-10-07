@@ -57,7 +57,14 @@ Datasets used so far: OpenFake (ComplexDataLab/OpenFake, arXiv 2509.09495, CC-BY
 RAID (liamdugan/raid, Dugan et al. ACL 2024, MIT) for text;
 garystafford/deepfake-audio-detection v4 (HF, CC-BY-4.0; 933 real YouTube clips from 14 recordings, 933 fake from
 ElevenLabs, Kokoro, Hume AI, Luvvoice, Amazon Polly, Speechify) for audio, split by source recording, ElevenLabs held out.
-Edited images: synthetic splices / copy-moves / AI-patch insertions with masks, following the self-blending idea of
+SID-Set (saberzl/SID_Set; SIDA, Huang et al., CVPR 2025; CC-BY-4.0; 210K train / 30K val, labels 0 real / 1 synthetic /
+2 tampered with masks) -> main 3-way image train/test (validation split used as test; official test split restricted).
+Baselines with official released weights: UnivFD fc_weights.pth (github.com/WisconsinAIVision/UniversalFakeDetect,
+ProGAN-trained); openai-community/roberta-base-openai-detector; Hello-SimpleAI/chatgpt-detector-roberta.
+Official code checked (2026-10-08): Omni-Fake code not yet released; Binoculars, Fast-DetectGPT, SSL_Anti-spoofing,
+UnivFD, SBI, FakeShield, TELL have repos. We re-implemented the core ideas in one codebase (small models, modern data);
+TELL needs a 120B model via a paid API, so not used.
+Extra edited images: synthetic splices / copy-moves / AI-patch insertions with masks, following the self-blending idea of
 Face X-ray (CVPR 2020) and SBI (CVPR 2022).
 Considered but too large for our budget: GenVidBench (jian-0/GenVidBench, AAAI 2026, 6.78M videos, 15-45 GB archives),
 GenVideo/DeMamba (2024). NTIRE 2026 Robust AIGI Detection challenge (arXiv 2604.11487) data not publicly linked.

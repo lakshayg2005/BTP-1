@@ -1,10 +1,13 @@
-"""Train the patch-level edit localizer on synthetic edits and build the fixed edited TEST set.
+"""Train the patch-level edit localizer and build the fixed synthetic edited TEST set.
 
-Train: every real train image -> one random edit (+mask); plus untouched real and AI images (all-zero masks).
-Test:  every real test image -> one edit, saved to data/images/test/edited/ with masks in edited_masks/,
-       so the 3-way evaluation (real / edited / AI) uses the same files every time.
+Training data:
+  - SID-Set (CVPR 2025) tampered images with their real edit masks, plus SID real and fully-synthetic images
+    (all-zero masks) -- the standard benchmark data, used whenever data/sid/train exists;
+  - our synthetic edits of OpenFake real photos (splice / AI patch / copy-move, src/image/splice.py) as extra data.
+Test: SID-Set validation tampered vs clean (main), and our synthetic edits of OpenFake test photos (secondary,
+      saved to data/images/test/edited/ so the 3-way evaluation reuses the same files).
 
-  python -m scripts.train_tamper --train-root data/images/train --test-root data/images/test --out models/tamper_head.pt
+  python -m scripts.train_tamper --out models/tamper_head.pt
 """
 import argparse
 import json
@@ -42,6 +45,23 @@ def build(real, ai, n_clean, geo, save_dir=None, desc=""):
         yield random_daily_life(Image.open(p).convert("RGB")), np.zeros(geo[2] ** 2, np.float32), 0
 
 
+def sid_samples(root, geo, n_clean):
+    """SID-Set images with real masks: tampered -> mask labels; real / fully synthetic -> all zeros."""
+    root = Path(root)
+    for p in tqdm(sorted((root / "edited").glob("*.png")), desc=f"sid edited {root.name}"):
+        img = Image.open(p).convert("RGB")
+        m = np.unpackbits(np.load(root / "edited_masks" / f"{p.stem}.npy"), axis=-1, count=img.width)[: img.height]
+        yield img, mask_to_patch_labels(m, geo[0], geo[1]), 1
+    clean = sorted((root / "real").glob("*.png"))[:n_clean] + sorted((root / "ai").glob("*.png"))[:n_clean]
+    for p in clean:
+        yield Image.open(p).convert("RGB"), np.zeros(geo[2] ** 2, np.float32), 0
+
+
+def chain(*gens):
+    for g in gens:
+        yield from g
+
+
 def encode(enc, samples, bs=32):
     X, Y, I, buf = [], [], [], []
 
@@ -66,6 +86,9 @@ def main():
     ap.add_argument("--test-root", default="data/images/test")
     ap.add_argument("--out", default="models/tamper_head.pt")
     ap.add_argument("--epochs", type=int, default=8)
+    ap.add_argument("--sid-train", default="data/sid/train")
+    ap.add_argument("--sid-test", default="data/sid/test")
+    ap.add_argument("--synthetic", type=int, default=1500, help="max OpenFake photos turned into synthetic edits for training")
     args = ap.parse_args()
     random.seed(0); np.random.seed(0); torch.manual_seed(0)
 
@@ -76,8 +99,13 @@ def main():
     Path(args.test_root, "edited").mkdir(exist_ok=True)
     Path(args.test_root, "edited_masks").mkdir(exist_ok=True)
 
-    Xtr, Ytr, _ = encode(enc, build(tr_real, tr_ai, len(tr_real) // 2, geo, desc="train"))
-    Xte, Yte, Ite = encode(enc, build(te_real, te_ai, len(te_real) // 2, geo, save_dir=args.test_root, desc="test"))
+    use_sid = Path(args.sid_train, "edited").exists()
+    syn = build(tr_real[: args.synthetic], tr_ai, min(args.synthetic, len(tr_real)) // 2, geo, desc="train")
+    Xtr, Ytr, _ = encode(enc, chain(sid_samples(args.sid_train, geo, 10 ** 9), syn) if use_sid else syn)
+    print(f"training patches from {'SID-Set + ' if use_sid else ''}synthetic edits: {len(Xtr)} images")
+    tests = {"synthetic_openfake": encode(enc, build(te_real, te_ai, len(te_real) // 2, geo, save_dir=args.test_root, desc="test"))}
+    if Path(args.sid_test, "edited").exists():
+        tests["sid_set"] = encode(enc, sid_samples(args.sid_test, geo, 10 ** 9))
 
     dev = enc.device
     head = TamperHead(enc.model.config.hidden_size).to(dev)
@@ -95,19 +123,21 @@ def main():
         print(f"epoch {ep + 1}: loss {tot / len(Xtr):.4f}")
 
     head.eval()
-    with torch.no_grad():
-        P = torch.cat([torch.sigmoid(head(Xte[i: i + 64].to(dev).float())).cpu() for i in range(0, len(Xte), 64)])
-    img_score = P.sort(1).values[:, -min(8, P.shape[1]):].mean(1).numpy()
-    pred = (P > 0.5).float()
-    edited = Ite == 1
-    inter = (pred[edited] * Yte[edited]).sum(1)
-    union = ((pred[edited] + Yte[edited]) > 0).float().sum(1).clamp(min=1)
-    report = {
-        "patch_auroc": float(roc_auc_score(Yte.numpy().ravel(), P.numpy().ravel())),
-        "image_auroc_edited_vs_clean": float(roc_auc_score(Ite, img_score)),
-        "mean_patch_iou_on_edited": float((inter / union).mean()),
-        "n_test_edited": int(edited.sum()), "n_test_clean": int((~edited).sum()),
-    }
+    report = {}
+    for name, (Xte, Yte, Ite) in tests.items():
+        with torch.no_grad():
+            P = torch.cat([torch.sigmoid(head(Xte[i: i + 64].to(dev).float())).cpu() for i in range(0, len(Xte), 64)])
+        img_score = P.sort(1).values[:, -min(8, P.shape[1]):].mean(1).numpy()
+        pred = (P > 0.5).float()
+        edited = Ite == 1
+        inter = (pred[edited] * Yte[edited]).sum(1)
+        union = ((pred[edited] + Yte[edited]) > 0).float().sum(1).clamp(min=1)
+        report[name] = {
+            "patch_auroc": float(roc_auc_score(Yte.numpy().ravel(), P.numpy().ravel())) if 0 < Yte.sum() < Yte.numel() else None,
+            "image_auroc_edited_vs_clean": float(roc_auc_score(Ite, img_score)) if len(set(Ite)) > 1 else None,
+            "mean_patch_iou_on_edited": float((inter / union).mean()),
+            "n_test_edited": int(edited.sum()), "n_test_clean": int((~edited).sum()),
+        }
     print(json.dumps(report, indent=2))
     Path(args.out).parent.mkdir(exist_ok=True)
     torch.save(head.state_dict(), args.out)

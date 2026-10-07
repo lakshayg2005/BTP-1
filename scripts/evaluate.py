@@ -19,6 +19,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 from sklearn.metrics import roc_auc_score
+from PIL import Image
 from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -32,10 +33,20 @@ def auroc(y, p):
     return round(float(roc_auc_score(y, p)), 4) if len(set(y)) > 1 else None
 
 
-def eval_image(n_explain):
-    from src.image.pipeline import ImageExpert
-    expert = ImageExpert("models/image_head.joblib", tamper_path="models/tamper_head.pt", out_dir="results/maps")
-    root = Path("data/images/test")
+_EXPERT = {}
+
+
+def image_expert():
+    if "x" not in _EXPERT:
+        from src.image.pipeline import ImageExpert
+        _EXPERT["x"] = ImageExpert("models/image_head.joblib", tamper_path="models/tamper_head.pt", out_dir="results/maps")
+    return _EXPERT["x"]
+
+
+def eval_image(root, n_explain, baseline=None):
+    """3-way evaluation on <root>/{real,ai,edited}; also scores the UnivFD baseline on real vs AI."""
+    expert = image_expert()
+    root = Path(root)
     model_of = {}
     if (root / "manifest.csv").exists():
         model_of = {r["path"]: r["model"] for r in csv.DictReader(open(root / "manifest.csv"))}
@@ -47,7 +58,8 @@ def eval_image(n_explain):
         v = expert.analyze(path, with_maps=False)
         verdicts[path] = v
         rows.append({"path": path, "truth": truth, "pred": v.label, "p_ai": v.probabilities["ai_generated"],
-                     "p_edit": v.probabilities["edited"], "model": model_of.get(path, "edited" if truth == "edited" else "")})
+                     "p_edit": v.probabilities["edited"], "model": model_of.get(path, "edited" if truth == "edited" else ""),
+                     "p_ai_univfd": baseline.prob_ai(Image.open(path)) if baseline and truth != "edited" else None})
 
     decided = [r for r in rows if r["pred"] != "uncertain"]
     conf = {t: Counter(r["pred"] for r in rows if r["truth"] == t) for t in CLASSES}
@@ -61,6 +73,9 @@ def eval_image(n_explain):
         "ai_auroc_real_vs_ai": auroc([r["truth"] == "ai_generated" for r in rows if r["truth"] != "edited"],
                                      [r["p_ai"] for r in rows if r["truth"] != "edited"]),
     }
+    if baseline:
+        nr = [r for r in rows if r["truth"] != "edited"]
+        res["ai_auroc_real_vs_ai_UnivFD_official_baseline"] = auroc([r["truth"] == "ai_generated" for r in nr], [r["p_ai_univfd"] for r in nr])
     # AI-detection AUROC per generator (each generator's fakes vs all real test images)
     reals = [r["p_ai"] for r in rows if r["truth"] == "real"]
     per_gen = defaultdict(list)
@@ -73,7 +88,8 @@ def eval_image(n_explain):
     kinds = defaultdict(list)
     for r in rows:
         if r["truth"] == "edited":
-            kinds[Path(r["path"]).stem.split("_", 1)[1]].append(r["pred"] == "edited")
+            stem = Path(r["path"]).stem
+            kinds[stem.split("_", 1)[1] if stem[:5].isdigit() and "_" in stem else "sid_tampered"].append(r["pred"] == "edited")
     res["edited_recall_by_kind"] = {k: round(float(np.mean(v)), 4) for k, v in kinds.items()}
 
     # explanations
@@ -117,6 +133,20 @@ def eval_audio():
     return res
 
 
+def eval_text_baselines(meta, y):
+    from src.baselines import TEXT_BASELINES, TextBaseline
+    texts = [m["text"] for m in meta]
+    out = {}
+    for name, (mid, labels) in TEXT_BASELINES.items():
+        try:
+            p = TextBaseline(mid, labels).prob_ai(texts)
+            ok = ~np.isnan(p)
+            out[name] = {"model": mid, "auroc": auroc(y[ok], p[ok]), "acc": round(float(((p[ok] >= 0.5) == y[ok]).mean()), 4)}
+        except Exception as e:  # a baseline failing must not kill the evaluation
+            out[name] = {"model": mid, "error": str(e)[:200]}
+    return out
+
+
 def eval_text():
     f = Path("features/txt_test.npz")
     if not (f.exists() and Path("models/text_head.joblib").exists()):
@@ -132,6 +162,7 @@ def eval_text():
     for i, m in enumerate(meta):
         by_dom[m["domain"]].append(i)
     res["auroc_per_domain"] = {k: auroc(y[v], p[v]) for k, v in by_dom.items() if len(v) >= 20}
+    res["official_baselines"] = eval_text_baselines(meta, y)
     return res
 
 
@@ -151,8 +182,19 @@ def main():
     (OUT / "maps").mkdir(exist_ok=True)
 
     report = {}
-    image, expl, _ = eval_image(args.n_explain)
+    from src.baselines import UnivFDBaseline
+    try:
+        base = UnivFDBaseline(image_expert().detector.encoder)
+    except Exception as e:
+        print("UnivFD baseline unavailable:", e)
+        base = None
+    main_root = "data/sid/test" if Path("data/sid/test/edited").exists() else "data/images/test"
+    image, expl, _ = eval_image(main_root, args.n_explain, base)
+    image["test_set"] = main_root
     report["image"], report["explanations"] = image, expl
+    if main_root != "data/images/test" and Path("data/images/test/real").exists():
+        report["image_openfake_synthetic_edits"], _, _ = eval_image("data/images/test", 0, base)
+        report["image_openfake_synthetic_edits"]["test_set"] = "data/images/test"
     report["audio"], report["text"] = eval_audio(), eval_text()
     for k in ("image_head", "tamper_head", "audio_head", "text_head"):
         for ext in (".metrics.json",):
@@ -162,17 +204,22 @@ def main():
     (OUT / "results.json").write_text(json.dumps(report, indent=2, default=str))
 
     md = ["# Results", ""]
-    md.append(md_table(image, "Image: 3-way real / edited / AI (with 'uncertain')"))
+    md.append(md_table(image, f"Image: 3-way real / edited / AI (with 'uncertain') on {image['test_set']}"))
     md.append("Recall per class: " + json.dumps(image["recall"]) + "\n")
     md.append("Confusion (truth -> predicted): " + json.dumps(image["confusion (truth -> predicted)"]) + "\n")
     md.append("Edited recall by edit kind: " + json.dumps(image["edited_recall_by_kind"]) + "\n")
+    if "image_openfake_synthetic_edits" in report:
+        o = report["image_openfake_synthetic_edits"]
+        md.append(md_table(o, "Image: OpenFake test + our synthetic edits"))
+        md.append("Recall per class: " + json.dumps(o["recall"]) + "\n")
+        image = {**image, "ai_auroc_per_generator": o["ai_auroc_per_generator"]}
     md.append("### AI-image AUROC per generator\n\n| generator | n | AUROC |\n|---|---|---|")
     md += [f"| {g} | {v['n']} | {v['auroc']} |" for g, v in image["ai_auroc_per_generator"].items()]
     if "image_head_training_report" in report:
         md.append("\n### Image AI detector: clean vs daily-life degraded\n\n| set | AUROC | acc | ECE |\n|---|---|---|---|")
         md += [f"| {k} | {v.get('auroc')} | {v.get('acc')} | {v.get('ece')} |" for k, v in report["image_head_training_report"].items()]
-    if "tamper_head_training_report" in report:
-        md.append("\n" + md_table(report["tamper_head_training_report"], "Edit localizer (patch level)"))
+    for set_name, tv in report.get("tamper_head_training_report", {}).items():
+        md.append("\n" + md_table(tv, f"Edit localizer (patch level) - {set_name}"))
     for name in ("audio", "text"):
         for k, v in report[name].items():
             if isinstance(v, dict) and "auroc" in v:
@@ -181,6 +228,13 @@ def main():
             md.append(md_table(report[name], name.title()))
             if "auroc_per_domain" in report[name]:
                 md.append("Per domain: " + json.dumps(report[name]["auroc_per_domain"]) + "\n")
+            for bn, bv in report[name].get("official_baselines", {}).items():
+                md.append(f"Baseline {bn} ({bv['model']}): AUROC {bv.get('auroc')}, acc {bv.get('acc')} {bv.get('error', '')}\n")
+    if "ai_auroc_real_vs_ai_UnivFD_official_baseline" in report["image"]:
+        md.append("\n### Image AI detection: ours vs official UnivFD weights (same CLIP backbone)\n\n"
+                  "| model | AUROC real vs AI |\n|---|---|\n"
+                  f"| UnivFD official head (ProGAN-trained) | {report['image']['ai_auroc_real_vs_ai_UnivFD_official_baseline']} |\n"
+                  f"| Ours (OpenFake-trained, daily-life augmented) | {report['image']['ai_auroc_real_vs_ai']} |\n")
     md.append(f"\n### Explanations\n\nLLM explanations passing the faithfulness check: {expl.get('llm_faithful_rate')} (n={expl['n']})\n")
     for e in expl["examples"]:
         md.append(f"**{e['file']}** (truth: {e['truth']})\n\n```\n{e['explanation']}\n```\n")

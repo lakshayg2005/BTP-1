@@ -14,12 +14,12 @@ CELLS = [
              "!mkdir -p /kaggle/tmp/data /kaggle/tmp/hf && ln -sfn /kaggle/tmp/data data\n"
              "import os\n"
              "os.environ.update(PY='python', HF_HOME='/kaggle/tmp/hf', TMPDIR_BTP='/kaggle/tmp/t',\n"
-             "                  IMG_TRAIN='3000', IMG_TEST='500', TXT_TRAIN='2000', TXT_TEST='400', BTP_TEXT_LM_SIZE='1.5B')"),
+             "                  IMG_TRAIN='3000', IMG_TEST='500', SID_TRAIN='1500', SID_TEST='500', TXT_TRAIN='2000', TXT_TEST='400', BTP_TEXT_LM_SIZE='1.5B')"),
     ("code", "!bash scripts/run_phase.sh deps 2>&1 | tail -3\n"
              "!python -c \"import torch, transformers; print(torch.__version__, transformers.__version__, torch.cuda.is_available())\""),
     ("md", "## Phase 1: image AI detector"),
     ("code", "!bash scripts/run_phase.sh image 2>&1 | grep -v -E 'it/s\\]|s/it\\]' | tail -60"),
-    ("md", "## Phase 2: edit localizer (+ builds the edited test set)"),
+    ("md", "## Phase 2: edit localizer (SID-Set masks + synthetic edits)"),
     ("code", "!bash scripts/run_phase.sh tamper 2>&1 | grep -v -E 'it/s\\]|s/it\\]' | tail -30"),
     ("md", "## Phase 3: audio"),
     ("code", "!bash scripts/run_phase.sh audio 2>&1 | grep -v -E 'it/s\\]|s/it\\]' | tail -60"),

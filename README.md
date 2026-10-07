@@ -14,12 +14,19 @@ input -> modality expert(s) -> Evidence list -> fusion -> verdict (+ "uncertain"
 
 | Expert | Method | Trained on |
 |---|---|---|
-| Image: AI-generated | Frozen CLIP ViT-L/14 + linear head (UnivFD idea), WhatsApp/screenshot/JPEG augmentations, saliency map | OpenFake (75+ generators) |
-| Image: edited | Patch-level linear probe on CLIP tokens -> edit map; plus ELA, noise residuals, EXIF/C2PA/generator tags | Synthetic splices, copy-moves, AI patches with exact masks |
+| Image: AI-generated | Frozen CLIP ViT-L/14 + linear head (UnivFD idea), WhatsApp/screenshot/JPEG augmentations, saliency map | OpenFake (75+ generators) + SID-Set real/synthetic |
+| Image: edited | Patch-level linear probe on CLIP tokens -> edit map; plus ELA, noise residuals, EXIF/C2PA/generator tags | SID-Set tampered images with masks (CVPR 2025) + our synthetic splices / copy-moves / AI patches |
 | Audio | Frozen XLS-R 300M + linear head; 2-s window localization; phone/Opus/MP3/noise augmentations | 6 commercial/open TTS (ElevenLabs held out as unseen) |
 | Text | Binoculars + Fast-DetectGPT + GLTR statistics from a Qwen2.5 pair, calibrated head; per-sentence mixed-authorship check | RAID (incl. adversarial attacks) |
 | Video | Frame-level image expert + temporal jumps + soundtrack through the audio expert (catches voice-cloned dubs) | (composition, no video training) |
 | Explainer | Qwen2.5-1.5B-Instruct writes from evidence only; every sentence must cite evidence and use only measured numbers, else falls back to a template | - |
+
+## Baselines (official released models, same test sets)
+
+- Images: UnivFD authors' released head (`fc_weights.pth`, ProGAN-trained) on the same CLIP ViT-L/14.
+- Text: `openai-community/roberta-base-openai-detector`, `Hello-SimpleAI/chatgpt-detector-roberta`.
+
+Main 3-way image test: SID-Set validation split (the official test split is restricted).
 
 ## Run (Kaggle, free GPU)
 
@@ -47,4 +54,4 @@ scripts/      data download, features, training, evaluation, analyze CLI
 app/demo.py   gradio web demo                    kaggle/     notebook generator + notebook
 ```
 
-Data licenses: OpenFake CC-BY-NC-4.0, RAID MIT, deepfake-audio-detection (garystafford) CC-BY-4.0. Academic, non-commercial use.
+Data licenses: OpenFake CC-BY-NC-4.0, SID-Set CC-BY-4.0, RAID MIT, deepfake-audio-detection (garystafford) CC-BY-4.0. Academic, non-commercial use.

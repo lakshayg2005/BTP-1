@@ -36,20 +36,21 @@ def metrics(y, p):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--train", required=True)
+    ap.add_argument("--train", nargs="+", required=True, help="one or more feature files, concatenated")
     ap.add_argument("--test", nargs="*", default=[])
     ap.add_argument("--out", required=True)
     ap.add_argument("--C", type=float, default=1.0)
     ap.add_argument("--scale", action="store_true", help="standardize features first (use for the few raw text features)")
     args = ap.parse_args()
 
-    d = np.load(args.train)
+    parts = [np.load(f) for f in args.train]
+    d = {"X": np.concatenate([q["X"] for q in parts]), "y": np.concatenate([q["y"] for q in parts])}
+    meta = {k: parts[0][k].item() for k in ("encoder", "layer", "performer") if k in parts[0].files}
     head = LogisticRegression(C=args.C, max_iter=5000, class_weight="balanced")
     if args.scale:
         head = make_pipeline(StandardScaler(), head)
     head.fit(d["X"].astype(np.float32), d["y"])
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
-    meta = {k: d[k].item() for k in ("encoder", "layer", "performer") if k in d.files}
     joblib.dump({"head": head, **meta}, args.out)
 
     report = {"train": metrics(d["y"], head.predict_proba(d["X"].astype(np.float32))[:, 1])}
