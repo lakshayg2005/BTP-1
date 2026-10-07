@@ -16,7 +16,7 @@ CELLS = [
              "except OSError:\n"
              "    problems.append('No internet: right panel -> Session options -> Internet -> On (needs phone verification)')\n"
              "if problems:\n"
-             "    raise SystemExit('FIX SESSION SETTINGS FIRST:\\n- ' + '\\n- '.join(problems))\n"
+             "    raise RuntimeError('FIX SESSION SETTINGS FIRST:\\n- ' + '\\n- '.join(problems))\n"
              "!nvidia-smi --query-gpu=name,memory.total --format=csv"),
     ("code", "%cd /kaggle/working\n"
              "!rm -rf BTP-1 && git clone -q --depth 1 https://github.com/lakshayg2005/BTP-1.git\n"
