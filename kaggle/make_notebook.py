@@ -6,7 +6,18 @@ CELLS = [
     ("md", "# BTP: explainable AI-content detection, Kaggle GPU runner\n"
            "Settings: **Accelerator = GPU T4**, **Internet = On**. Then *Save Version -> Save & Run All (Commit)* "
            "so it runs in the background. Outputs (models, features, metrics, logs) appear under *Output*."),
-    ("code", "!nvidia-smi --query-gpu=name,memory.total --format=csv"),
+    ("code", "# Stop early with a clear message if the session is misconfigured\n"
+             "import shutil, socket\n"
+             "problems = []\n"
+             "if not shutil.which('nvidia-smi'):\n"
+             "    problems.append('No GPU: right panel -> Session options -> Accelerator -> GPU T4 x2 (needs phone verification)')\n"
+             "try:\n"
+             "    socket.create_connection(('github.com', 443), timeout=10).close()\n"
+             "except OSError:\n"
+             "    problems.append('No internet: right panel -> Session options -> Internet -> On (needs phone verification)')\n"
+             "if problems:\n"
+             "    raise SystemExit('FIX SESSION SETTINGS FIRST:\\n- ' + '\\n- '.join(problems))\n"
+             "!nvidia-smi --query-gpu=name,memory.total --format=csv"),
     ("code", "%cd /kaggle/working\n"
              "!rm -rf BTP-1 && git clone -q --depth 1 https://github.com/lakshayg2005/BTP-1.git\n"
              "%cd BTP-1\n"
