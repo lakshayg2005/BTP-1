@@ -17,8 +17,11 @@ DEFAULT_THRESHOLDS = {"ai_high": 0.85, "ai_low": 0.25, "sent_ai": 0.80, "mixed_l
 
 class TextExpert:
     def __init__(self, head_path: str, thresholds: dict | None = None, scorer: LikelihoodScorer | None = None):
-        self.head = joblib.load(head_path)["head"]
-        self.scorer = scorer or LikelihoodScorer()
+        bundle = joblib.load(head_path)
+        self.head = bundle["head"]
+        # the head only works with the language-model pair it was trained on, which is stored in the bundle
+        obs = bundle.get("encoder")
+        self.scorer = scorer or (LikelihoodScorer(obs, f"{obs}-Instruct") if obs else LikelihoodScorer())
         self.t = {**DEFAULT_THRESHOLDS, **(thresholds or {})}
 
     def _p(self, feats) -> float:

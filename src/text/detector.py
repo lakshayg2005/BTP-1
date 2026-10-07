@@ -3,7 +3,8 @@
 Features (all computed per text and per sentence):
 - Binoculars score (Hans et al., ICML 2024): log-perplexity under a "performer" model divided by the
   cross-perplexity between "observer" and "performer". Low = machine-like. Original uses Falcon-7B pair;
-  we use a small same-tokenizer pair (Qwen2.5-1.5B base / instruct) to fit 8 GB.
+  we use a small same-tokenizer pair (Qwen2.5-0.5B base / instruct; 1.5B is a drop-in upgrade if download
+  time allows) to fit 8 GB and our slow network.
 - Fast-DetectGPT analytic criterion (Bao et al., ICLR 2024): how much more likely the observed tokens are
   than tokens sampled from the model's own distribution, normalised. High = machine-like.
 - Mean token log-prob and mean entropy (GLTR-style, Gehrmann et al., ACL 2019).
@@ -11,6 +12,7 @@ Per-token surprisal is kept for highlighting which words look "too predictable".
 """
 from __future__ import annotations
 
+import os
 import re
 
 import numpy as np
@@ -20,8 +22,9 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from src.common.device import get_device
 
-OBSERVER = "Qwen/Qwen2.5-1.5B"
-PERFORMER = "Qwen/Qwen2.5-1.5B-Instruct"
+_SIZE = os.environ.get("BTP_TEXT_LM_SIZE", "0.5B")   # set to 1.5B on Kaggle / faster networks
+OBSERVER = f"Qwen/Qwen2.5-{_SIZE}"
+PERFORMER = f"Qwen/Qwen2.5-{_SIZE}-Instruct"
 FEATURE_NAMES = ["binoculars", "fast_detectgpt", "mean_logprob", "mean_entropy"]
 
 

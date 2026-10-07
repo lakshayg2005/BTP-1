@@ -24,7 +24,7 @@ def main():
     args = ap.parse_args()
 
     ds = load_dataset("ComplexDataLab/OpenFake", split=args.split, streaming=True)
-    ds = ds.shuffle(seed=args.seed, buffer_size=5000)
+    ds = ds.shuffle(seed=args.seed, buffer_size=1000)
     counts = {"real": 0, "ai": 0}
     rows = []
     for d in ("real", "ai"):
