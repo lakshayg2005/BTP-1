@@ -17,16 +17,26 @@ CELLS = [
              "                  IMG_TRAIN='3000', IMG_TEST='500', TXT_TRAIN='2000', TXT_TEST='400', BTP_TEXT_LM_SIZE='1.5B')"),
     ("code", "!bash scripts/run_phase.sh deps 2>&1 | tail -3\n"
              "!python -c \"import torch, transformers; print(torch.__version__, transformers.__version__, torch.cuda.is_available())\""),
-    ("md", "## Phase 1: image"),
+    ("md", "## Phase 1: image AI detector"),
     ("code", "!bash scripts/run_phase.sh image 2>&1 | grep -v -E 'it/s\\]|s/it\\]' | tail -60"),
-    ("md", "## Phase 3: text"),
+    ("md", "## Phase 2: edit localizer (+ builds the edited test set)"),
+    ("code", "!bash scripts/run_phase.sh tamper 2>&1 | grep -v -E 'it/s\\]|s/it\\]' | tail -30"),
+    ("md", "## Phase 3: audio"),
+    ("code", "!bash scripts/run_phase.sh audio 2>&1 | grep -v -E 'it/s\\]|s/it\\]' | tail -60"),
+    ("md", "## Phase 4: text"),
     ("code", "!bash scripts/run_phase.sh text 2>&1 | grep -v -E 'it/s\\]|s/it\\]' | tail -60"),
-    ("md", "## Sanity check: full pipeline + explanations on a few test images"),
-    ("code", "import glob, subprocess\n"
-             "for p in sorted(glob.glob('data/images/test/ai/*.png'))[:2] + sorted(glob.glob('data/images/test/real/*.png'))[:2]:\n"
-             "    print('=' * 80, '\\n', p)\n"
-             "    print(subprocess.run(['python', '-m', 'scripts.analyze', p, '--explainer', 'llm'], capture_output=True, text=True).stdout[-1500:])"),
-    ("code", "!ls -la models features && cat models/*.metrics.json"),
+    ("md", "## Evaluation: results tables + example explanations"),
+    ("code", "!bash scripts/run_phase.sh evaluate 2>&1 | grep -v -E 'it/s\\]|s/it\\]' | tail -150"),
+    ("code", "from IPython.display import Markdown, display\n"
+             "display(Markdown(open('results/summary.md').read()))"),
+    ("code", "# keep small outputs only; big data stays in /kaggle/tmp\n"
+             "!cd /kaggle/working && zip -qr btp_outputs.zip BTP-1/models BTP-1/results BTP-1/logs BTP-1/features -x '*.npz' && ls -la btp_outputs.zip"),
+    ("md", "## Live demo (interactive sessions only)\nOpen the notebook in edit mode, run all cells, then this one prints a public gradio link."),
+    ("code", "import os\n"
+             "if os.environ.get('KAGGLE_KERNEL_RUN_TYPE') == 'Interactive':\n"
+             "    !python -m app.demo --share\n"
+             "else:\n"
+             "    print('Batch run: demo skipped')"),
 ]
 
 

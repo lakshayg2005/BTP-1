@@ -21,7 +21,7 @@ class TextExpert:
         self.head = bundle["head"]
         # the head only works with the language-model pair it was trained on, which is stored in the bundle
         obs = bundle.get("encoder")
-        self.scorer = scorer or (LikelihoodScorer(obs, f"{obs}-Instruct") if obs else LikelihoodScorer())
+        self.scorer = scorer or (LikelihoodScorer(obs, bundle.get("performer", f"{obs}-Instruct")) if obs else LikelihoodScorer())
         self.t = {**DEFAULT_THRESHOLDS, **(thresholds or {})}
 
     def _p(self, feats) -> float:

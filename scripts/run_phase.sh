@@ -25,6 +25,19 @@ case "${1:-image}" in
     step features/img_test.npz  $PY -m scripts.extract_image_features --root data/images/test  --out features/img_test.npz  --aug 1
     $PY -m scripts.train_head --train features/img_train.npz --test features/img_test.npz --out models/image_head.joblib
     ;;
+  tamper)
+    step models/tamper_head.pt $PY -m scripts.train_tamper
+    ;;
+  audio)
+    step data/audio/manifest.csv $PY -m scripts.download_audio
+    for s in train test test_unseen; do
+      step features/aud_$s.npz $PY -m scripts.extract_audio_features --root data/audio/$s --out features/aud_$s.npz --aug 1
+    done
+    $PY -m scripts.train_head --train features/aud_train.npz --test features/aud_test.npz features/aud_test_unseen.npz --out models/audio_head.joblib
+    ;;
+  evaluate)
+    $PY -m scripts.evaluate --n-explain "${N_EXPLAIN:-24}"
+    ;;
   text)
     step features/txt_train.npz $PY -m scripts.extract_text_features --per-label "$TXT_TRAIN" --out features/txt_train.npz
     step features/txt_test.npz  $PY -m scripts.extract_text_features --per-label "$TXT_TEST" --seed 1 --skip 200000 --out features/txt_test.npz

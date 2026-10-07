@@ -7,6 +7,8 @@ Sliding-window scoring gives time localization ("which seconds sound synthetic")
 """
 from __future__ import annotations
 
+import os
+
 import joblib
 import numpy as np
 import torch
@@ -15,7 +17,7 @@ from transformers import AutoFeatureExtractor, AutoModel
 
 from src.common.device import get_device
 
-DEFAULT_AUDIO_ENCODER = "facebook/wav2vec2-xls-r-300m"
+DEFAULT_AUDIO_ENCODER = os.environ.get("BTP_AUDIO_ENCODER", "facebook/wav2vec2-xls-r-300m")
 SR = 16000
 
 
@@ -36,7 +38,7 @@ class SpeechEncoder:
         self.dtype = torch.float16 if self.device.type == "cuda" else torch.float32
         self.fe = AutoFeatureExtractor.from_pretrained(name)
         self.model = AutoModel.from_pretrained(name, torch_dtype=self.dtype).to(self.device).eval()
-        self.layer = layer
+        self.layer = min(layer, self.model.config.num_hidden_layers)
 
     @torch.no_grad()
     def embed(self, wavs: list[np.ndarray]) -> np.ndarray:

@@ -49,7 +49,7 @@ def main():
         head = make_pipeline(StandardScaler(), head)
     head.fit(d["X"].astype(np.float32), d["y"])
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
-    meta = {k: d[k].item() for k in ("encoder", "layer") if k in d.files}
+    meta = {k: d[k].item() for k in ("encoder", "layer", "performer") if k in d.files}
     joblib.dump({"head": head, **meta}, args.out)
 
     report = {"train": metrics(d["y"], head.predict_proba(d["X"].astype(np.float32))[:, 1])}

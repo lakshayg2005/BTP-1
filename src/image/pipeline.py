@@ -24,8 +24,13 @@ def _save_map(m: np.ndarray, size: tuple[int, int], path: str) -> str:
 
 
 class ImageExpert:
-    def __init__(self, head_path: str, thresholds: dict | None = None, out_dir: str = "outputs"):
+    def __init__(self, head_path: str, thresholds: dict | None = None, out_dir: str = "outputs",
+                 tamper_path: str | None = None):
         self.detector = AIImageDetector(head_path)
+        self.tamper = None
+        if tamper_path and os.path.exists(tamper_path):
+            from src.image.tamper import TamperLocalizer
+            self.tamper = TamperLocalizer(tamper_path, self.detector.encoder)
         self.t = {**DEFAULT_THRESHOLDS, **(thresholds or {})}
         self.out_dir = out_dir
         os.makedirs(out_dir, exist_ok=True)
@@ -47,6 +52,18 @@ class ImageExpert:
         noise = forensics.noise_map(img)
         s_ela, s_noise = forensics.inconsistency_score(ela), forensics.inconsistency_score(noise)
         edit_score = max(s_ela, s_noise)
+        if self.tamper is not None:
+            tmap, s_learn = self.tamper.predict(img)
+            # learned localizer is the primary edit signal; classical maps only add weak support
+            edit_score = max(s_learn, 0.6 * edit_score)
+            ys, xs = np.unravel_index(np.argmax(tmap), tmap.shape)
+            where = f"{'top' if ys < 6 else 'bottom' if ys > 9 else 'middle'}-{'left' if xs < 6 else 'right' if xs > 9 else 'centre'}"
+            ev.append(Evidence("image.tamper_localizer", "patch_localizer", "map", round(s_learn, 3),
+                               "edited" if s_learn >= self.t["edit_low"] else "neutral", s_learn,
+                               (f"The edit localizer finds a region that looks pasted or altered, strongest in the {where} of the image (score {s_learn:.2f})."
+                                if s_learn >= self.t["edit_low"] else f"The edit localizer finds no altered region (score {s_learn:.2f}).")))
+            if with_maps:
+                artifacts["tamper_map"] = _save_map(tmap, img.size, f"{self.out_dir}/{stem}_tamper.png")
         ev.append(Evidence("image.ela_inconsistency", "ela", "score", round(s_ela, 3),
                            "edited" if s_ela >= self.t["edit_low"] else "neutral", s_ela,
                            f"Error-level analysis shows {'a region that re-compresses differently from the rest' if s_ela >= self.t['edit_low'] else 'uniform compression across the image'} (score {s_ela:.2f})."))

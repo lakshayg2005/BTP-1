@@ -6,6 +6,8 @@ cheap and fits our 8 GB GPU / CPU budget.
 """
 from __future__ import annotations
 
+import os
+
 import joblib
 import numpy as np
 import torch
@@ -15,7 +17,7 @@ from transformers import CLIPImageProcessor, CLIPVisionModelWithProjection
 
 from src.common.device import get_device
 
-DEFAULT_ENCODER = "openai/clip-vit-large-patch14"
+DEFAULT_ENCODER = os.environ.get("BTP_IMAGE_ENCODER", "openai/clip-vit-large-patch14")
 
 
 class ClipEncoder:

@@ -23,8 +23,8 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from src.common.device import get_device
 
 _SIZE = os.environ.get("BTP_TEXT_LM_SIZE", "0.5B")   # set to 1.5B on Kaggle / faster networks
-OBSERVER = f"Qwen/Qwen2.5-{_SIZE}"
-PERFORMER = f"Qwen/Qwen2.5-{_SIZE}-Instruct"
+OBSERVER = os.environ.get("BTP_TEXT_OBSERVER", f"Qwen/Qwen2.5-{_SIZE}")
+PERFORMER = os.environ.get("BTP_TEXT_PERFORMER", f"Qwen/Qwen2.5-{_SIZE}-Instruct")
 FEATURE_NAMES = ["binoculars", "fast_detectgpt", "mean_logprob", "mean_entropy"]
 
 

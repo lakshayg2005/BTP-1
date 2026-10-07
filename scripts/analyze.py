@@ -15,13 +15,20 @@ from src.explain.template import explain as template_explain  # noqa: E402
 
 IMAGE = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".heic"}
 AUDIO = {".wav", ".mp3", ".ogg", ".opus", ".m4a", ".flac", ".aac"}
+VIDEO = {".mp4", ".mov", ".webm", ".mkv", ".avi"}
 
 
 def modality(path: str | None) -> str:
     if path is None:
         return "text"
     ext = Path(path).suffix.lower()
-    return "image" if ext in IMAGE else "audio" if ext in AUDIO else "text" if ext in {".txt", ".md"} else "unknown"
+    if ext in IMAGE:
+        return "image"
+    if ext in AUDIO:
+        return "audio"
+    if ext in VIDEO:
+        return "video"
+    return "text" if ext in {".txt", ".md"} else "unknown"
 
 
 def main():
@@ -37,7 +44,15 @@ def main():
     kind = modality(None if args.text else args.path)
     if kind == "image":
         from src.image.pipeline import ImageExpert
-        v = ImageExpert(f"{args.models}/image_head.joblib", out_dir=args.out_dir).analyze(args.path)
+        v = ImageExpert(f"{args.models}/image_head.joblib", out_dir=args.out_dir,
+                        tamper_path=f"{args.models}/tamper_head.pt").analyze(args.path)
+    elif kind == "video":
+        from src.audio.pipeline import AudioExpert
+        from src.image.pipeline import ImageExpert
+        from src.video.pipeline import VideoExpert
+        img = ImageExpert(f"{args.models}/image_head.joblib", out_dir=args.out_dir, tamper_path=f"{args.models}/tamper_head.pt")
+        aud = AudioExpert(f"{args.models}/audio_head.joblib") if Path(f"{args.models}/audio_head.joblib").exists() else None
+        v = VideoExpert(img, aud).analyze(args.path)
     elif kind == "audio":
         from src.audio.pipeline import AudioExpert
         v = AudioExpert(f"{args.models}/audio_head.joblib").analyze(args.path)

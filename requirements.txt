@@ -11,3 +11,6 @@ pillow
 opencv-python-headless
 tqdm
 pyyaml
+soundfile
+matplotlib
+gradio

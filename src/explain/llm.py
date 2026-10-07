@@ -7,6 +7,7 @@ The faithfulness rules follow the omitted/irrelevant-evidence failure modes in a
 """
 from __future__ import annotations
 
+import os
 import re
 
 import torch
@@ -16,7 +17,7 @@ from src.common.device import get_device
 from src.common.evidence import Verdict
 from src.explain.template import LABEL_TEXT, explain as template_explain
 
-DEFAULT_LLM = "Qwen/Qwen2.5-1.5B-Instruct"
+DEFAULT_LLM = os.environ.get("BTP_EXPLAINER_LLM", "Qwen/Qwen2.5-1.5B-Instruct")
 
 PROMPT = """You explain the result of a media-forensics system to a non-expert.
 Verdict: {label} (confidence {conf:.0%}).

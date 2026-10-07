@@ -50,6 +50,20 @@ XAI: LIME (KDD 2016); Grad-CAM (ICCV 2017); SHAP (NeurIPS 2017). Provenance: C2P
 
 Training/feature extraction runs on a remote RTX 4070 Laptop GPU (8 GB VRAM, ~4 GB free RAM, limited disk).
 Access details and the cleanup checklist are kept locally in LOCAL_ACCESS_NOTES.md (git-ignored).
+2026-10-08: remote laptop kept sleeping / changing IP and had ~0.85 MB/s internet, so GPU runs moved to
+Kaggle (free T4/P100, about 30 GPU h/week, ~9-12 h per session; notebook kaggle/btp_kaggle.ipynb).
+
+Datasets used so far: OpenFake (ComplexDataLab/OpenFake, arXiv 2509.09495, CC-BY-NC-4.0) for images;
+RAID (liamdugan/raid, Dugan et al. ACL 2024, MIT) for text;
+garystafford/deepfake-audio-detection v4 (HF, CC-BY-4.0; 933 real YouTube clips from 14 recordings, 933 fake from
+ElevenLabs, Kokoro, Hume AI, Luvvoice, Amazon Polly, Speechify) for audio, split by source recording, ElevenLabs held out.
+Edited images: synthetic splices / copy-moves / AI-patch insertions with masks, following the self-blending idea of
+Face X-ray (CVPR 2020) and SBI (CVPR 2022).
+Considered but too large for our budget: GenVidBench (jian-0/GenVidBench, AAAI 2026, 6.78M videos, 15-45 GB archives),
+GenVideo/DeMamba (2024). NTIRE 2026 Robust AIGI Detection challenge (arXiv 2604.11487) data not publicly linked.
+Also seen: mueller91/human-perception-audio-deepfake-2026 (human listening study, 138 TTS/VC systems).
+Models: CLIP ViT-L/14 (openai/clip-vit-large-patch14); Qwen2.5-0.5B/1.5B base + instruct (text detector and explainer);
+wav2vec2 XLS-R 300M (facebook/wav2vec2-xls-r-300m) for audio.
 
 ## D. Design decisions log (update as we go)
 

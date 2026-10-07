@@ -17,7 +17,7 @@ from datasets import load_dataset
 from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from src.text.detector import OBSERVER, LikelihoodScorer  # noqa: E402
+from src.text.detector import OBSERVER, PERFORMER, LikelihoodScorer  # noqa: E402
 
 
 def main():
@@ -57,7 +57,7 @@ def main():
 
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
     np.savez_compressed(args.out, X=np.array(X, np.float32), y=np.array(Y), aug=np.array([m["attack"] not in ("none", None) for m in meta]),
-                        paths=np.array([f"raid_{i}" for i in range(len(Y))]), encoder=np.array(OBSERVER))
+                        paths=np.array([f"raid_{i}" for i in range(len(Y))]), encoder=np.array(OBSERVER), performer=np.array(PERFORMER))
     with open(Path(args.out).with_suffix(".jsonl"), "w", encoding="utf-8") as f:
         for m, y in zip(meta, Y):
             f.write(json.dumps({**m, "label": y}) + "\n")
