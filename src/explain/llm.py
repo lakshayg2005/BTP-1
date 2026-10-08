@@ -45,9 +45,11 @@ class LLMExplainer:
     def generate(self, v: Verdict) -> str:
         facts = "\n".join(f"{e.id}: {e.description}" for e in v.evidence)
         msgs = [{"role": "user", "content": PROMPT.format(label=LABEL_TEXT[v.label], conf=v.confidence, facts=facts)}]
-        ids = self.tok.apply_chat_template(msgs, add_generation_prompt=True, return_tensors="pt").to(self.device)
-        out = self.llm.generate(ids, max_new_tokens=220, do_sample=False)
-        return self.tok.decode(out[0, ids.shape[1]:], skip_special_tokens=True).strip()
+        # render to text, then tokenize: works across transformers 4.x and 5.x (5.x returns a dict here)
+        prompt = self.tok.apply_chat_template(msgs, add_generation_prompt=True, tokenize=False)
+        inputs = self.tok(prompt, return_tensors="pt").to(self.device)
+        out = self.llm.generate(**inputs, max_new_tokens=220, do_sample=False)
+        return self.tok.decode(out[0, inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
 
     def explain(self, v: Verdict) -> tuple[str, dict]:
         draft = self.generate(v)

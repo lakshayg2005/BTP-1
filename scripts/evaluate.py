@@ -94,21 +94,30 @@ def eval_image(root, n_explain, baseline=None):
 
     # explanations
     expl = {"n": 0}
-    if n_explain:
+    try:
+        if not n_explain:
+            raise RuntimeError("LLM explanations disabled")
         from src.explain.llm import LLMExplainer
         llm = LLMExplainer()
         random.seed(0)
-        sample = random.sample(rows, min(n_explain, len(rows)))
+        # stratified: equal numbers of real / edited / AI cases so the examples cover every verdict type
+        sample = []
+        for t in CLASSES:
+            pool = [r for r in rows if r["truth"] == t]
+            sample += random.sample(pool, min(n_explain // len(CLASSES), len(pool)))
         faithful, examples = [], []
         for r in tqdm(sample, desc="explanations"):
             v = verdicts[r["path"]]
             text, rep = llm.explain(v)
             faithful.append(rep["used"] == "llm")
-            if len(examples) < 6:
+            if sum(e["truth"] == r["truth"] for e in examples) < 2:
                 examples.append({"file": Path(r["path"]).name, "truth": r["truth"], "pred": v.label,
                                  "explanation": text, "explainer": rep["used"], "problems": rep.get("problems", [])})
         expl = {"n": len(sample), "llm_faithful_rate": round(float(np.mean(faithful)), 4), "examples": examples}
-    else:
+    except Exception as e:  # explanations must never take the numeric results down with them
+        print(f"[warn] LLM explanations skipped: {type(e).__name__}: {e}")
+        expl = {"n": 0, "error": f"{type(e).__name__}: {e}"[:300]}
+    if not expl.get("examples"):
         expl["examples"] = [{"file": Path(r["path"]).name, "truth": r["truth"], "explanation": template_explain(verdicts[r["path"]])}
                             for r in rows[:: max(1, len(rows) // 6)][:6]]
     return res, expl, rows
