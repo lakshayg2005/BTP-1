@@ -71,7 +71,9 @@ def encode(enc, samples, bs=32):
         I.extend(s[2] for s in buf)
         buf.clear()
 
-    for s in samples:
+    for n, s in enumerate(samples):
+        if n % 500 == 0:
+            print(f"  encoded {n} images", flush=True)
         buf.append(s)
         if len(buf) == bs:
             flush()

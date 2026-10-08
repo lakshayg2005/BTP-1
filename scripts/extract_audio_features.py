@@ -48,7 +48,9 @@ def main():
                 Y.append(y); P.append(p); A.append(a)
             buf.clear()
 
-    for path, y in tqdm(items):
+    for n, (path, y) in enumerate(tqdm(items)):
+        if n % 300 == 0:
+            print(f"  {n}/{len(items)} clips", flush=True)
         try:
             wav = load_audio(path, args.seconds)
         except Exception as e:

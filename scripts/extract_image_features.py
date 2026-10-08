@@ -50,7 +50,9 @@ def main():
                 Y.append(m[0]); P.append(m[1]); A.append(m[2])
             batch_imgs.clear(); batch_meta.clear()
 
-    for path, y in tqdm(items):
+    for n, (path, y) in enumerate(tqdm(items)):
+        if n % 500 == 0:
+            print(f"  {n}/{len(items)} images", flush=True)
         try:
             img = Image.open(path).convert("RGB")
         except Exception as e:  # corrupt files happen in scraped datasets

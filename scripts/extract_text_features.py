@@ -53,6 +53,8 @@ def main():
         X.append(r["features"]); Y.append(y)
         meta.append({"model": ex["model"], "domain": ex["domain"], "attack": ex.get("attack"), "text": text[:2000]})
         got[y] += 1; got_attacked[y] += attacked
+        if sum(got.values()) % 250 == 0:
+            print(f"  {got} texts scored", flush=True)
         bar.update(1)
 
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)

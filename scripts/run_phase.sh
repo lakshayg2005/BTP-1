@@ -5,7 +5,7 @@
 # Sizes are env-configurable: small defaults for slow networks, larger on Kaggle.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-export TRANSFORMERS_VERBOSITY=error HF_HUB_DISABLE_PROGRESS_BARS=1
+export TRANSFORMERS_VERBOSITY=error HF_HUB_DISABLE_PROGRESS_BARS=1 TQDM_DISABLE=1
 export HF_HOME="${HF_HOME:-$PWD/.hf_home}" UV_CACHE_DIR="${UV_CACHE_DIR:-$PWD/.uv_cache}" TMPDIR="${TMPDIR_BTP:-$PWD/.tmp}" PYTHONUNBUFFERED=1
 mkdir -p logs features models "$TMPDIR"
 PY="${PY:-.venv/bin/python}"

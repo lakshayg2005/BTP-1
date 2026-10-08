@@ -1,17 +1,24 @@
-"""Stream a small, balanced slice of OpenFake (ComplexDataLab/OpenFake, arXiv 2509.09495) to disk.
+"""Download a small, balanced slice of OpenFake (ComplexDataLab/OpenFake, arXiv 2509.09495), config 'core'.
 
-Writes <out>/<split>/{real,ai}/<sha>.png plus a manifest.csv with the generator name per image.
-All images are re-saved as PNG so file format cannot leak the label (real photos are often JPEG,
-generated ones PNG). Set HF_HOME to a folder inside the project to keep caches out of the home dir.
+Uses src/common/hf_sample.py: reads only the label column first, then the images of the rows it needs,
+drawing at most a few dozen images per row group so the sample spans many files and generators.
+Writes <out>/<split>/{real,ai}/<id>.png plus manifest.csv (generator name per image). All images are re-saved
+as PNG so file format cannot leak the label.
 
   python -m scripts.download_openfake --split train --per-label 3000 --out data/images
 """
 import argparse
 import csv
+import hashlib
+import io
 import os
+import sys
+from pathlib import Path
 
-from datasets import load_dataset
-from tqdm import tqdm
+from PIL import Image
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from src.common.hf_sample import sample_rows  # noqa: E402
 
 
 def main():
@@ -24,43 +31,29 @@ def main():
     ap.add_argument("--config", default="core", help="OpenFake subset: 'core' (curated) or 'reddit' (in-the-wild)")
     args = ap.parse_args()
 
-    ds = load_dataset("ComplexDataLab/OpenFake", args.config, split=args.split, streaming=True)
-    ds = ds.shuffle(seed=args.seed, buffer_size=1000)
-    feat = (ds.features or {}).get("label") if getattr(ds, "features", None) else None
-    names = getattr(feat, "names", None)
-    print("label feature:", feat)
-    counts = {"real": 0, "ai": 0}
-    rows = []
+    out = Path(args.out, args.split)
     for d in ("real", "ai"):
-        os.makedirs(f"{args.out}/{args.split}/{d}", exist_ok=True)
-    bar = tqdm(total=2 * args.per_label)
-    for ex in ds:
-        raw = ex["label"]
-        if not isinstance(raw, str):                      # ClassLabel int -> name
-            raw = names[raw] if names else str(raw)
-        lab = "real" if str(raw).lower() == "real" else "ai"
-        if counts[lab] >= args.per_label:
-            if all(c >= args.per_label for c in counts.values()):
-                break
-            continue
+        (out / d).mkdir(parents=True, exist_ok=True)
+    rows = []
+    label_of = lambda x: "real" if str(x).lower() == "real" else "ai"  # noqa: E731  ('real' / 'fake')
+    for lab, r in sample_rows("ComplexDataLab/OpenFake", f"{args.config}/{args.split}-*.parquet", "label", label_of,
+                              {"real": args.per_label, "ai": args.per_label}, ["image", "label", "model"], seed=args.seed):
         try:
-            img = ex["image"].convert("RGB")
+            img = Image.open(io.BytesIO(r["image"]["bytes"])).convert("RGB")
         except Exception:
             continue
         if max(img.size) > args.max_side:
             s = args.max_side / max(img.size)
-            img = img.resize((int(img.width * s), int(img.height * s)))
-        name = (ex.get("sha256") or ex.get("hash") or f"{lab}_{counts[lab]}")[:16]
-        path = f"{args.out}/{args.split}/{lab}/{name}.png"
+            img = img.resize((int(img.width * s), int(img.height * s)), Image.BICUBIC)
+        name = hashlib.sha1(r["image"]["bytes"][:4096]).hexdigest()[:16]
+        path = out / lab / f"{name}.png"
         img.save(path)
-        rows.append({"path": path, "label": lab, "model": ex.get("model", ""), "type": ex.get("type", "")})
-        counts[lab] += 1
-        bar.update(1)
-    with open(f"{args.out}/{args.split}/manifest.csv", "w", newline="") as f:
+        rows.append({"path": str(path).replace(os.sep, "/"), "label": lab, "model": r.get("model", ""), "type": ""})
+    with open(out / "manifest.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=["path", "label", "model", "type"])
         w.writeheader()
         w.writerows(rows)
-    print(counts)
+    print({k: sum(r["label"] == k for r in rows) for k in ("real", "ai")}, "generators:", len({r["model"] for r in rows}))
 
 
 if __name__ == "__main__":

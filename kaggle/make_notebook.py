@@ -39,17 +39,20 @@ CELLS = [
     ("code", "!bash scripts/run_phase.sh deps 2>&1 | tail -3\n"
              "!python -c \"import torch, transformers; print(torch.__version__, transformers.__version__, torch.cuda.is_available())\""),
     ("md", "## Phase 1: image AI detector"),
-    ("code", "!bash scripts/run_phase.sh image 2>&1 | grep -v -E 'it/s\\]|s/it\\]' | tail -60"),
+    ("code", "!bash scripts/run_phase.sh image 2>&1 | grep --line-buffered -v -E 'UNEXPECTED|^Notes:|can be ignored|^[[:space:]]*$'"),
     ("md", "## Phase 2: edit localizer (SID-Set masks + synthetic edits)"),
-    ("code", "!bash scripts/run_phase.sh tamper 2>&1 | grep -v -E 'it/s\\]|s/it\\]' | tail -30"),
+    ("code", "!bash scripts/run_phase.sh tamper 2>&1 | grep --line-buffered -v -E 'UNEXPECTED|^Notes:|can be ignored|^[[:space:]]*$'"),
     ("md", "## Phase 3: audio"),
-    ("code", "!bash scripts/run_phase.sh audio 2>&1 | grep -v -E 'it/s\\]|s/it\\]' | tail -60"),
+    ("code", "!bash scripts/run_phase.sh audio 2>&1 | grep --line-buffered -v -E 'UNEXPECTED|^Notes:|can be ignored|^[[:space:]]*$'"),
     ("md", "## Phase 4: text"),
-    ("code", "!bash scripts/run_phase.sh text 2>&1 | grep -v -E 'it/s\\]|s/it\\]' | tail -60"),
+    ("code", "!bash scripts/run_phase.sh text 2>&1 | grep --line-buffered -v -E 'UNEXPECTED|^Notes:|can be ignored|^[[:space:]]*$'"),
     ("md", "## Evaluation: results tables + example explanations"),
-    ("code", "!bash scripts/run_phase.sh evaluate 2>&1 | grep -v -E 'it/s\\]|s/it\\]' | tail -150"),
+    ("code", "!bash scripts/run_phase.sh evaluate 2>&1 | grep --line-buffered -v -E 'UNEXPECTED|^Notes:|can be ignored|^[[:space:]]*$'"),
     ("code", "from IPython.display import Markdown, display\n"
-             "display(Markdown(open('results/summary.md').read()))"),
+             "if os.path.exists('results/summary.md'):\n"
+             "    display(Markdown(open('results/summary.md').read()))\n"
+             "else:\n"
+             "    print('No summary yet: check the phase logs above for [warn] or Traceback lines')"),
     ("code", "# keep small outputs only; big data stays in /kaggle/tmp\n"
              "!cd /kaggle/working && zip -qr btp_outputs.zip BTP-1/models BTP-1/results BTP-1/logs BTP-1/features -x '*.npz' && ls -la btp_outputs.zip"),
     ("md", "## If a run stops early\nIts output is still saved. Start a new version: *Add Input -> Your Work* -> pick this notebook "
