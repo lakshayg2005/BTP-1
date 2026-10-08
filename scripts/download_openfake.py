@@ -21,17 +21,24 @@ def main():
     ap.add_argument("--out", default="data/images")
     ap.add_argument("--max-side", type=int, default=1024, help="downscale huge images to save disk")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--config", default="core", help="OpenFake subset: 'core' (curated) or 'reddit' (in-the-wild)")
     args = ap.parse_args()
 
-    ds = load_dataset("ComplexDataLab/OpenFake", split=args.split, streaming=True)
+    ds = load_dataset("ComplexDataLab/OpenFake", args.config, split=args.split, streaming=True)
     ds = ds.shuffle(seed=args.seed, buffer_size=1000)
+    feat = (ds.features or {}).get("label") if getattr(ds, "features", None) else None
+    names = getattr(feat, "names", None)
+    print("label feature:", feat)
     counts = {"real": 0, "ai": 0}
     rows = []
     for d in ("real", "ai"):
         os.makedirs(f"{args.out}/{args.split}/{d}", exist_ok=True)
     bar = tqdm(total=2 * args.per_label)
     for ex in ds:
-        lab = "real" if ex["label"] == "real" else "ai"
+        raw = ex["label"]
+        if not isinstance(raw, str):                      # ClassLabel int -> name
+            raw = names[raw] if names else str(raw)
+        lab = "real" if str(raw).lower() == "real" else "ai"
         if counts[lab] >= args.per_label:
             if all(c >= args.per_label for c in counts.values()):
                 break
