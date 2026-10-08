@@ -20,9 +20,14 @@ case "${1:-image}" in
     if [ "$PY" = "python" ]; then $PY -m pip install -q -r "$TMPDIR/req.txt"; else uv pip install --python $PY -r "$TMPDIR/req.txt"; fi
     ;;
   image)
-    step data/images/train/manifest.csv $PY -m scripts.download_openfake --split train --per-label "$IMG_TRAIN"
+    # training images are only needed while their features or the edit localizer are still missing (resume-friendly)
+    if [ ! -f features/img_train.npz ] || [ ! -f models/tamper_head.pt ]; then
+      step data/images/train/manifest.csv $PY -m scripts.download_openfake --split train --per-label "$IMG_TRAIN"
+    fi
+    if [ ! -f features/sid_train.npz ] || [ ! -f models/tamper_head.pt ]; then
+      step data/sid/train/.done bash -c "$PY -m scripts.download_sidset --split train --per-class $SID_TRAIN && touch data/sid/train/.done"
+    fi
     step data/images/test/manifest.csv  $PY -m scripts.download_openfake --split test  --per-label "$IMG_TEST"
-    step data/sid/train/.done bash -c "$PY -m scripts.download_sidset --split train --per-class $SID_TRAIN && touch data/sid/train/.done"
     step data/sid/test/.done  bash -c "$PY -m scripts.download_sidset --split validation --out-split test --per-class $SID_TEST && touch data/sid/test/.done"
     step features/img_train.npz $PY -m scripts.extract_image_features --root data/images/train --out features/img_train.npz --aug 2
     step features/img_test.npz  $PY -m scripts.extract_image_features --root data/images/test  --out features/img_test.npz  --aug 1

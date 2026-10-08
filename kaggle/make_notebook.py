@@ -21,9 +21,19 @@ CELLS = [
     ("code", "%cd /kaggle/working\n"
              "!rm -rf BTP-1 && git clone -q --depth 1 https://github.com/lakshayg2005/BTP-1.git\n"
              "%cd BTP-1\n"
-             "# big, re-downloadable things go to /kaggle/tmp so the saved output stays small\n"
-             "!mkdir -p /kaggle/tmp/data /kaggle/tmp/hf && ln -sfn /kaggle/tmp/data data\n"
-             "import os\n"
+             "# big TRAINING images go to /kaggle/tmp (not saved); test sets, features and models stay in the saved output\n"
+             "!mkdir -p /kaggle/tmp/hf /kaggle/tmp/images_train /kaggle/tmp/sid_train data/images data/sid\n"
+             "!ln -sfn /kaggle/tmp/images_train data/images/train && ln -sfn /kaggle/tmp/sid_train data/sid/train\n"
+             "import os\n"),
+    ("code", "# RESUME: if an earlier version's output is attached (Add Input -> Your Work -> this notebook), reuse its finished work\n"
+             "import glob, shutil\n"
+             "for prev in glob.glob('/kaggle/input/**/BTP-1', recursive=True):\n"
+             "    print('resuming from', prev)\n"
+             "    for sub in ['features', 'models', 'logs', 'data/images/test', 'data/sid/test', 'data/audio']:\n"
+             "        if os.path.exists(f'{prev}/{sub}'):\n"
+             "            shutil.copytree(f'{prev}/{sub}', sub, dirs_exist_ok=True)\n"
+             "print('features:', sorted(os.listdir('features')) if os.path.exists('features') else 'none yet')\n"
+             "print('models:', sorted(os.listdir('models')) if os.path.exists('models') else 'none yet')\n"
              "os.environ.update(PY='python', HF_HOME='/kaggle/tmp/hf', TMPDIR_BTP='/kaggle/tmp/t',\n"
              "                  IMG_TRAIN='3000', IMG_TEST='500', SID_TRAIN='1500', SID_TEST='500', TXT_TRAIN='2000', TXT_TEST='400', BTP_TEXT_LM_SIZE='1.5B')"),
     ("code", "!bash scripts/run_phase.sh deps 2>&1 | tail -3\n"
@@ -42,6 +52,8 @@ CELLS = [
              "display(Markdown(open('results/summary.md').read()))"),
     ("code", "# keep small outputs only; big data stays in /kaggle/tmp\n"
              "!cd /kaggle/working && zip -qr btp_outputs.zip BTP-1/models BTP-1/results BTP-1/logs BTP-1/features -x '*.npz' && ls -la btp_outputs.zip"),
+    ("md", "## If a run stops early\nIts output is still saved. Start a new version: *Add Input -> Your Work* -> pick this notebook "
+           "(the stopped version), then *Save Version -> Save & Run All* again. Finished steps are skipped."),
     ("md", "## Live demo (interactive sessions only)\nOpen the notebook in edit mode, run all cells, then this one prints a public gradio link."),
     ("code", "import os\n"
              "if os.environ.get('KAGGLE_KERNEL_RUN_TYPE') == 'Interactive':\n"
