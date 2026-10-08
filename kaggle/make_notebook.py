@@ -55,6 +55,17 @@ CELLS = [
              "    print('No summary yet: check the phase logs above for [warn] or Traceback lines')"),
     ("code", "# keep small outputs only; big data stays in /kaggle/tmp\n"
              "!cd /kaggle/working && zip -qr btp_outputs.zip BTP-1/models BTP-1/results BTP-1/logs BTP-1/features -x '*.npz' && ls -la btp_outputs.zip"),
+    ("md", "## Final status\nKaggle marks a run *successful* whenever the cells finish, even if a script inside failed. "
+           "This checklist is the real verdict: the run is marked failed if anything is missing (outputs are already saved)."),
+    ("code", "expected = {'image AI detector': 'models/image_head.joblib', 'edit localizer': 'models/tamper_head.pt',\n"
+             "            'audio detector': 'models/audio_head.joblib', 'text detector': 'models/text_head.joblib',\n"
+             "            'evaluation report': 'results/summary.md'}\n"
+             "missing = [name for name, f in expected.items() if not os.path.exists(f)]\n"
+             "for name, f in expected.items():\n"
+             "    print(('OK      ' if os.path.exists(f) else 'MISSING ') + f'{name:20s} {f}')\n"
+             "if missing:\n"
+             "    raise RuntimeError(f'Run incomplete, missing: {missing}. Attach this version as input and run again.')\n"
+             "print('ALL DONE')"),
     ("md", "## If a run stops early\nIts output is still saved. Start a new version: *Add Input -> Your Work* -> pick this notebook "
            "(the stopped version), then *Save Version -> Save & Run All* again. Finished steps are skipped."),
     ("md", "## Live demo (interactive sessions only)\nOpen the notebook in edit mode, run all cells, then this one prints a public gradio link."),
