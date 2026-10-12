@@ -49,6 +49,9 @@ case "${1:-image}" in
     done
     $PY -m scripts.train_head --train features/aud_train.npz --test features/aud_test.npz features/aud_test_unseen.npz --out models/audio_head.joblib
     ;;
+  fusion)
+    step models/fusion_head.joblib $PY -m scripts.train_fusion
+    ;;
   evaluate)
     $PY -m scripts.evaluate --n-explain "${N_EXPLAIN:-24}"
     ;;

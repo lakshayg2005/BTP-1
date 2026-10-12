@@ -21,13 +21,14 @@ DEFAULT_LLM = os.environ.get("BTP_EXPLAINER_LLM", "Qwen/Qwen2.5-1.5B-Instruct")
 
 PROMPT = """You explain the result of a media-forensics system to a non-expert.
 Verdict: {label} (confidence {conf:.0%}).
-Evidence (id: fact):
+Evidence:
 {facts}
 
 Write 3 to 5 short sentences explaining why the system reached this verdict.
 Rules:
 - Use ONLY the facts above. Do not add any other clue, number or detail.
-- End every sentence with the id of the fact it uses in square brackets, e.g. [image.ai_score].
+- End every sentence with the tag of the fact it uses in square brackets, e.g. [E1].
+- Copy numbers exactly as written in the facts.
 - If evidence points the other way, mention it.
 - If the verdict is uncertain, say what is missing or conflicting."""
 
@@ -42,17 +43,23 @@ class LLMExplainer:
             model, torch_dtype=torch.float16 if self.device.type == "cuda" else torch.float32).to(self.device).eval()
 
     @torch.no_grad()
-    def generate(self, v: Verdict) -> str:
-        facts = "\n".join(f"{e.id}: {e.description}" for e in v.evidence)
+    def generate(self, v: Verdict) -> tuple[str, dict]:
+        # short tags [E1], [E2] are much easier for a small model to cite than long ids;
+        # context-only (neutral) scores are left out so they cannot be misread as findings
+        shown = [e for e in v.evidence if e.supports != "neutral" or e.kind == "metadata"] or v.evidence
+        tags = {f"E{i + 1}": e.id for i, e in enumerate(shown)}
+        facts = "\n".join(f"[E{i + 1}] {e.description}" for i, e in enumerate(shown))
         msgs = [{"role": "user", "content": PROMPT.format(label=LABEL_TEXT[v.label], conf=v.confidence, facts=facts)}]
         # render to text, then tokenize: works across transformers 4.x and 5.x (5.x returns a dict here)
         prompt = self.tok.apply_chat_template(msgs, add_generation_prompt=True, tokenize=False)
         inputs = self.tok(prompt, return_tensors="pt").to(self.device)
         out = self.llm.generate(**inputs, max_new_tokens=220, do_sample=False)
-        return self.tok.decode(out[0, inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
+        return self.tok.decode(out[0, inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip(), tags
 
     def explain(self, v: Verdict) -> tuple[str, dict]:
-        draft = self.generate(v)
+        raw, tags = self.generate(v)
+        # map [E1] -> [image.ai_score] so the checker verifies against the real evidence ids
+        draft = re.sub(r"\[(E\d+)\]", lambda m: f"[{tags.get(m.group(1), m.group(1))}]", raw)
         ok, report = check_faithfulness(draft, v)
         if not ok:
             return template_explain(v), {"used": "template_fallback", **report, "rejected_draft": draft}

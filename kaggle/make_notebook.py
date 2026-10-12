@@ -42,6 +42,8 @@ CELLS = [
     ("code", "!bash scripts/run_phase.sh image 2>&1 | grep --line-buffered -v -E 'UNEXPECTED|^Notes:|can be ignored|^[[:space:]]*$'"),
     ("md", "## Phase 2: edit localizer (SID-Set masks + synthetic edits)"),
     ("code", "!bash scripts/run_phase.sh tamper 2>&1 | grep --line-buffered -v -E 'UNEXPECTED|^Notes:|can be ignored|^[[:space:]]*$'"),
+    ("md", "## Phase 2b: 3-way fusion (trained on a held-out calibration half of the test sets)"),
+    ("code", "!bash scripts/run_phase.sh fusion 2>&1 | grep --line-buffered -v -E 'UNEXPECTED|^Notes:|can be ignored|^[[:space:]]*$'"),
     ("md", "## Phase 3: audio"),
     ("code", "!bash scripts/run_phase.sh audio 2>&1 | grep --line-buffered -v -E 'UNEXPECTED|^Notes:|can be ignored|^[[:space:]]*$'"),
     ("md", "## Phase 4: text"),
@@ -58,6 +60,7 @@ CELLS = [
     ("md", "## Final status\nKaggle marks a run *successful* whenever the cells finish, even if a script inside failed. "
            "This checklist is the real verdict: the run is marked failed if anything is missing (outputs are already saved)."),
     ("code", "expected = {'image AI detector': 'models/image_head.joblib', 'edit localizer': 'models/tamper_head.pt',\n"
+             "            '3-way fusion': 'models/fusion_head.joblib',\n"
              "            'audio detector': 'models/audio_head.joblib', 'text detector': 'models/text_head.joblib',\n"
              "            'evaluation report': 'results/summary.md'}\n"
              "missing = [name for name, f in expected.items() if not os.path.exists(f)]\n"

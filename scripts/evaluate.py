@@ -53,11 +53,18 @@ def eval_image(root, n_explain, baseline=None):
     items = [(str(p), "real") for p in sorted((root / "real").glob("*.png"))] + \
             [(str(p), "ai_generated") for p in sorted((root / "ai").glob("*.png"))] + \
             [(str(p), "edited") for p in sorted((root / "edited").glob("*.png"))]
+    split_file = Path("results/eval_split.json")
+    if split_file.exists():   # fusion was trained on the other (calibration) half: report on held-out half only
+        keep = set(json.loads(split_file.read_text()))
+        items = [(p, t) for p, t in items if p.replace("\\", "/") in keep]
     rows, verdicts = [], {}
-    for path, truth in tqdm(items, desc="image eval"):
+    print(f"{root}: evaluating {len(items)} images", flush=True)
+    for n, (path, truth) in enumerate(tqdm(items, desc="image eval")):
+        if n % 200 == 0:
+            print(f"  {n}/{len(items)}", flush=True)
         v = expert.analyze(path, with_maps=False)
         verdicts[path] = v
-        rows.append({"path": path, "truth": truth, "pred": v.label, "p_ai": v.probabilities["ai_generated"],
+        rows.append({"path": path, "truth": truth, "pred": v.label, "p_ai": getattr(v, "features", {}).get("p_ai", v.probabilities["ai_generated"]),
                      "p_edit": v.probabilities["edited"], "model": model_of.get(path, "edited" if truth == "edited" else ""),
                      "p_ai_univfd": baseline.prob_ai(Image.open(path)) if baseline and truth != "edited" else None})
 
@@ -120,6 +127,11 @@ def eval_image(root, n_explain, baseline=None):
     if not expl.get("examples"):
         expl["examples"] = [{"file": Path(r["path"]).name, "truth": r["truth"], "explanation": template_explain(verdicts[r["path"]])}
                             for r in rows[:: max(1, len(rows) // 6)][:6]]
+    res["evaluated_on"] = "held-out eval half (fusion trained on calibration half)" if split_file.exists() else "all test images"
+    with open(f"results/image_rows_{root.parent.name}_{root.name}.csv", "w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=list(rows[0]))
+        w.writeheader()
+        w.writerows(rows)
     return res, expl, rows
 
 
@@ -205,7 +217,7 @@ def main():
         report["image_openfake_synthetic_edits"], _, _ = eval_image("data/images/test", 0, base)
         report["image_openfake_synthetic_edits"]["test_set"] = "data/images/test"
     report["audio"], report["text"] = eval_audio(), eval_text()
-    for k in ("image_head", "tamper_head", "audio_head", "text_head"):
+    for k in ("image_head", "tamper_head", "fusion_head", "audio_head", "text_head"):
         for ext in (".metrics.json",):
             f = Path(f"models/{k}{ext}")
             if f.exists():
@@ -214,6 +226,8 @@ def main():
 
     md = ["# Results", ""]
     md.append(md_table(image, f"Image: 3-way real / edited / AI (with 'uncertain') on {image['test_set']}"))
+    if "fusion_head_training_report" in report:
+        md.append(md_table(report["fusion_head_training_report"], "3-way fusion (trained on calibration half)"))
     md.append("Recall per class: " + json.dumps(image["recall"]) + "\n")
     md.append("Confusion (truth -> predicted): " + json.dumps(image["confusion (truth -> predicted)"]) + "\n")
     md.append("Edited recall by edit kind: " + json.dumps(image["edited_recall_by_kind"]) + "\n")
@@ -227,7 +241,8 @@ def main():
     if "image_head_training_report" in report:
         md.append("\n### Image AI detector: clean vs daily-life degraded\n\n| set | AUROC | acc | ECE |\n|---|---|---|---|")
         md += [f"| {k} | {v.get('auroc')} | {v.get('acc')} | {v.get('ece')} |" for k, v in report["image_head_training_report"].items()]
-    for set_name, tv in report.get("tamper_head_training_report", {}).items():
+    tr = report.get("tamper_head_training_report", {})
+    for set_name, tv in (tr.items() if all(isinstance(v, dict) for v in tr.values()) else [("test", tr)]):
         md.append("\n" + md_table(tv, f"Edit localizer (patch level) - {set_name}"))
     for name in ("audio", "text"):
         for k, v in report[name].items():

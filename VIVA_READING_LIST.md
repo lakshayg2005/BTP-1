@@ -137,4 +137,23 @@ IDs marked ✓ were checked online on 2026-10-08/11; IDs marked (check) are from
 | Audio | seen TTS / degraded | AUROC 0.9997 / 0.9995 |
 | Audio | **unseen ElevenLabs** | AUROC 0.980, acc 87.2% |
 | Text | clean / **attacked** RAID | AUROC 0.975 / 0.757 |
-| Baselines, 3-way results, explanation faithfulness | | pending the evaluation run |
+
+### Baselines (official released models, same test images), evaluation run of 2026-10-11
+
+| Task | Ours | Official baseline |
+|---|---|---|
+| AI-image detection, SID-Set | **AUROC 0.992** | UnivFD released head (ProGAN-trained): 0.452 |
+| AI-image detection, OpenFake | **AUROC 0.980** | UnivFD released head: 0.494 |
+| AI-text detection, RAID (clean + attacked) | **AUROC 0.883** | OpenAI RoBERTa detector 0.814; ChatGPT-detector RoBERTa (HC3) 0.634 |
+
+Per-generator AI-image AUROC (OpenFake test): GPT-image-1.5 0.995, Midjourney-7 0.965, Sora-2 0.989, Veo-3 0.982,
+Flux.2-klein 0.969, Seedream-5 0.999, Recraft-v3 0.907 (lowest).
+
+### Lessons from the first full evaluation (be ready to discuss)
+- **Hand-set 3-way thresholds failed:** real-photo recall was 0.2%, and most real photos were called "edited", because the
+  edit signals (especially classical noise/ELA) are high on untouched photos too. Fix: a **learned 3-class fusion**
+  trained on a held-out *calibration half* of the test sets, with results reported on the other half; ELA and noise were
+  demoted to context-only evidence. (Re-run pending.)
+- **LLM explanations:** only 12.5% of Qwen2.5-1.5B drafts passed the faithfulness check; the checker caught the rest
+  and the system fell back to the evidence-only explanation. Conclusion: small LLMs hallucinate even when given only
+  evidence, so an automatic faithfulness check is necessary. (Prompt now uses short [E1] tags; re-run pending.)

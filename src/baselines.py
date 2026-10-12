@@ -32,14 +32,18 @@ class UnivFDBaseline:
         sd = {k.split(".")[-1]: v for k, v in sd.items()}           # keys may be 'weight'/'bias' or 'fc.weight'
         self.w, self.b = sd["weight"].float().view(-1), sd["bias"].float().view(-1)
         self.encoder = encoder                                      # our shared ClipEncoder (same ViT-L/14)
+        dim = getattr(encoder.model.config, "projection_dim", None)
+        if dim is not None and dim != self.w.numel():
+            raise ValueError(f"UnivFD head expects {self.w.numel()}-d CLIP features, encoder gives {dim}-d")
 
     def _pixels(self, img: Image.Image) -> torch.Tensor:
+        n = self.encoder.model.config.image_size          # 224 for CLIP ViT-L/14
         img = img.convert("RGB")
-        if min(img.size) < 224:
-            s = 224 / min(img.size)
+        if min(img.size) < n:
+            s = n / min(img.size)
             img = img.resize((round(img.width * s), round(img.height * s)), Image.BICUBIC)
-        left, top = (img.width - 224) // 2, (img.height - 224) // 2
-        x = torch.from_numpy(np.asarray(img.crop((left, top, left + 224, top + 224)), np.float32) / 255).permute(2, 0, 1)
+        left, top = (img.width - n) // 2, (img.height - n) // 2
+        x = torch.from_numpy(np.asarray(img.crop((left, top, left + n, top + n)), np.float32) / 255).permute(2, 0, 1)
         return ((x - CLIP_MEAN) / CLIP_STD)[None]
 
     @torch.no_grad()
