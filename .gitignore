@@ -10,3 +10,4 @@ models/*.joblib
 *.log
 Omni-Fake.pdf
 LOCAL_ACCESS_NOTES.md
+*.zip
