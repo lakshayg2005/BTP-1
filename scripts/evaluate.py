@@ -122,7 +122,8 @@ def eval_image(root, n_explain, baseline=None):
                                  "explanation": text, "explainer": rep["used"], "problems": rep.get("problems", [])})
         expl = {"n": len(sample), "llm_faithful_rate": round(float(np.mean(faithful)), 4), "examples": examples}
     except Exception as e:  # explanations must never take the numeric results down with them
-        print(f"[warn] LLM explanations skipped: {type(e).__name__}: {e}")
+        if n_explain:
+            print(f"[warn] LLM explanations skipped: {type(e).__name__}: {e}")
         expl = {"n": 0, "error": f"{type(e).__name__}: {e}"[:300]}
     if not expl.get("examples"):
         expl["examples"] = [{"file": Path(r["path"]).name, "truth": r["truth"], "explanation": template_explain(verdicts[r["path"]])}
