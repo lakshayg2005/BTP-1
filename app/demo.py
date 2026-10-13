@@ -94,7 +94,8 @@ def main():
     global ARGS
     ap = argparse.ArgumentParser()
     ap.add_argument("--share", action="store_true")
-    ap.add_argument("--explainer", choices=["llm", "template"], default="llm")
+    ap.add_argument("--explainer", choices=["llm", "template"], default="template",
+                    help="template = evidence-only (always faithful); llm = Qwen2.5-1.5B rewrite with faithfulness check")
     ARGS = ap.parse_args()
 
     with gr.Blocks(title="Real, Edited or AI?") as ui:

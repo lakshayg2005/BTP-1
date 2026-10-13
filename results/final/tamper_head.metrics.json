@@ -1,0 +1,16 @@
+{
+  "synthetic_openfake": {
+    "patch_auroc": 0.8754908154256765,
+    "image_auroc_edited_vs_clean": 0.8945258947436331,
+    "mean_patch_iou_on_edited": 0.23356160521507263,
+    "n_test_edited": 498,
+    "n_test_clean": 498
+  },
+  "sid_set": {
+    "patch_auroc": 0.8508621703146169,
+    "image_auroc_edited_vs_clean": 0.8718269999999999,
+    "mean_patch_iou_on_edited": 0.2835037410259247,
+    "n_test_edited": 500,
+    "n_test_clean": 1000
+  }
+}

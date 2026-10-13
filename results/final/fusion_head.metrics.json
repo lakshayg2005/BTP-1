@@ -1,0 +1,44 @@
+{
+  "calib_n": 1583,
+  "eval_n": 1413,
+  "tau": 0.69,
+  "tamper_flag": 0.901,
+  "calib_accuracy_all": 0.8073,
+  "calib_coverage_at_tau": 0.698,
+  "calib_accuracy_on_decided": 0.9014,
+  "coefficients": {
+    "ai_generated": {
+      "p_ai": 1.962,
+      "tamper_top8": -1.076,
+      "tamper_mean": -0.651,
+      "tamper_frac50": 0.316,
+      "ela": -0.213,
+      "noise": 0.412,
+      "meta_generator": 0.0,
+      "meta_editor": 0.0,
+      "meta_camera": 0.0
+    },
+    "edited": {
+      "p_ai": -0.496,
+      "tamper_top8": 1.842,
+      "tamper_mean": 0.524,
+      "tamper_frac50": -0.449,
+      "ela": 0.372,
+      "noise": -0.373,
+      "meta_generator": 0.0,
+      "meta_editor": 0.0,
+      "meta_camera": 0.0
+    },
+    "real": {
+      "p_ai": -1.466,
+      "tamper_top8": -0.767,
+      "tamper_mean": 0.127,
+      "tamper_frac50": 0.133,
+      "ela": -0.159,
+      "noise": -0.04,
+      "meta_generator": 0.0,
+      "meta_editor": 0.0,
+      "meta_camera": 0.0
+    }
+  }
+}

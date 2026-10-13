@@ -1,0 +1,417 @@
+{
+  "image": {
+    "n": 696,
+    "coverage": 0.6968,
+    "accuracy_on_decided": 0.8887,
+    "accuracy_counting_uncertain_as_wrong": 0.6193,
+    "recall": {
+      "real": 0.5351,
+      "edited": 0.4076,
+      "ai_generated": 0.9217
+    },
+    "confusion (truth -> predicted)": {
+      "real": {
+        "ai_generated": 4,
+        "uncertain": 86,
+        "real": 122,
+        "edited": 16
+      },
+      "edited": {
+        "uncertain": 109,
+        "real": 22,
+        "edited": 97,
+        "ai_generated": 10
+      },
+      "ai_generated": {
+        "ai_generated": 212,
+        "uncertain": 16,
+        "edited": 1,
+        "real": 1
+      }
+    },
+    "ai_auroc_real_vs_ai": 0.9936,
+    "ai_auroc_real_vs_ai_UnivFD_official_baseline": 0.4432,
+    "ai_auroc_per_generator": {
+      "unknown": {
+        "n": 230,
+        "auroc": 0.9936
+      }
+    },
+    "edited_recall_by_kind": {
+      "sid_tampered": 0.4076
+    },
+    "evaluated_on": "held-out eval half (fusion trained on calibration half)",
+    "test_set": "data/sid/test"
+  },
+  "explanations": {
+    "n": 24,
+    "llm_faithful_rate": 0.0833,
+    "examples": [
+      {
+        "file": "f66cd0ebebcca9c8.png",
+        "truth": "real",
+        "pred": "uncertain",
+        "explanation": "Verdict: UNCERTAIN (the evidence is weak or conflicting), confidence 62%.\nMain evidence:\n- The learned detector gives a 27% probability that the whole image is AI-generated.\n- The edit localizer finds no clearly altered region (score 0.58).",
+        "explainer": "template_fallback",
+        "problems": [
+          "no citation: The system's conclusion that the evidence is uncertain becau",
+          "no citation: This uncertainty reflects the mixed results from both the le"
+        ]
+      },
+      {
+        "file": "5f2f7b01e1e9c05e.png",
+        "truth": "real",
+        "pred": "uncertain",
+        "explanation": "Verdict: UNCERTAIN (the evidence is weak or conflicting), confidence 52%.\nMain evidence:\n- The learned detector gives a 8% probability that the whole image is AI-generated.\n- The edit localizer finds no clearly altered region (score 0.83).",
+        "explainer": "template_fallback",
+        "problems": [
+          "no citation: The system's verdict indicates uncertainty because both E1 a",
+          "unsupported numbers ['8']: suggests an 8% chance of AI-generated content, while [image.",
+          "no citation: states there was no clear alteration detected.",
+          "no citation: This discrepancy prevents the system from reaching a definit",
+          "unknown id ['UNCERTAIN']: [UNCERTAIN]."
+        ]
+      },
+      {
+        "file": "tampered_03886.png",
+        "truth": "edited",
+        "pred": "ai_generated",
+        "explanation": "Verdict: likely AI-GENERATED, confidence 100%.\nMain evidence:\n- The learned detector gives a 92% probability that the whole image is AI-generated.\nEvidence pointing the other way:\n- The edit localizer finds no clearly altered region (score 0.63).",
+        "explainer": "template_fallback",
+        "problems": [
+          "no citation: The learned detector indicates a high likelihood that the en",
+          "no citation: Additionally, the edit localizer found no clear alterations "
+        ]
+      },
+      {
+        "file": "tampered_03079.png",
+        "truth": "edited",
+        "pred": "uncertain",
+        "explanation": "Verdict: UNCERTAIN (the evidence is weak or conflicting), confidence 59%.\nMain evidence:\n- The learned detector gives a 8% probability that the whole image is AI-generated.\n- The edit localizer finds a region that looks pasted or altered, strongest in the top-left of the image (score 0.95).",
+        "explainer": "template_fallback",
+        "problems": [
+          "no citation: The system detected an 8% chance that the entire image might",
+          "no citation: Additionally, there's a strong indication from the edit loca",
+          "no citation: However, these findings alone do not provide enough clear-cu",
+          "no citation: Therefore, the final verdict remains uncertain due to confli",
+          "no citation: [E1; E2]"
+        ]
+      },
+      {
+        "file": "full_synthetic_006578.png",
+        "truth": "ai_generated",
+        "pred": "ai_generated",
+        "explanation": "Verdict: likely AI-GENERATED, confidence 100%.\nMain evidence:\n- The learned detector gives a 100% probability that the whole image is AI-generated.\nEvidence pointing the other way:\n- The edit localizer finds no clearly altered region (score 0.52).",
+        "explainer": "template_fallback",
+        "problems": [
+          "no citation: The learned detector confidently determined that the entire ",
+          "no citation: This indicates that the system detected no clear alterations",
+          "no citation: Additionally, the edit localizer found no significantly alte"
+        ]
+      },
+      {
+        "file": "full_synthetic_009987.png",
+        "truth": "ai_generated",
+        "pred": "ai_generated",
+        "explanation": "Verdict: likely AI-GENERATED, confidence 85%.\nMain evidence:\n- The learned detector gives a 86% probability that the whole image is AI-generated.\nEvidence pointing the other way:\n- The edit localizer finds no clearly altered region (score 0.85).",
+        "explainer": "template_fallback",
+        "problems": [
+          "no citation: The system detected an 86% likelihood that the entire image ",
+          "no citation: Additionally, the edit localizer found no clear alterations ",
+          "no citation: These findings collectively support the conclusion that the "
+        ]
+      }
+    ]
+  },
+  "image_openfake_synthetic_edits": {
+    "n": 717,
+    "coverage": 0.7001,
+    "accuracy_on_decided": 0.9143,
+    "accuracy_counting_uncertain_as_wrong": 0.6402,
+    "recall": {
+      "real": 0.524,
+      "edited": 0.5758,
+      "ai_generated": 0.8263
+    },
+    "confusion (truth -> predicted)": {
+      "real": {
+        "uncertain": 103,
+        "edited": 16,
+        "real": 131
+      },
+      "edited": {
+        "real": 18,
+        "edited": 133,
+        "uncertain": 80
+      },
+      "ai_generated": {
+        "ai_generated": 195,
+        "real": 6,
+        "uncertain": 32,
+        "edited": 3
+      }
+    },
+    "ai_auroc_real_vs_ai": 0.9796,
+    "ai_auroc_real_vs_ai_UnivFD_official_baseline": 0.4743,
+    "ai_auroc_per_generator": {
+      "z-image-turbo": {
+        "n": 60,
+        "auroc": 0.9704
+      },
+      "illustrious": {
+        "n": 44,
+        "auroc": 0.9994
+      },
+      "flux.2-klein-9b": {
+        "n": 36,
+        "auroc": 0.9756
+      },
+      "midjourney-7": {
+        "n": 20,
+        "auroc": 0.9644
+      },
+      "gpt-image-1.5": {
+        "n": 18,
+        "auroc": 0.9936
+      },
+      "veo-3": {
+        "n": 14,
+        "auroc": 0.9846
+      },
+      "wan-video-2.5": {
+        "n": 9,
+        "auroc": 0.9853
+      },
+      "ernie-image-turbo": {
+        "n": 7,
+        "auroc": 0.9794
+      },
+      "recraft-v3": {
+        "n": 5,
+        "auroc": 0.876
+      }
+    },
+    "edited_recall_by_kind": {
+      "copy_move": 0.3146,
+      "ai_patch": 0.7571,
+      "splice": 0.7222
+    },
+    "evaluated_on": "held-out eval half (fusion trained on calibration half)",
+    "test_set": "data/images/test"
+  },
+  "audio": {
+    "test": {
+      "n": 217,
+      "auroc": 1.0,
+      "acc": 0.9954,
+      "auroc_degraded": 0.9995
+    },
+    "test_unseen": {
+      "n": 231,
+      "auroc": 0.9782,
+      "acc": 0.8831,
+      "auroc_degraded": 0.9816
+    }
+  },
+  "text": {
+    "n": 800,
+    "auroc": 0.8826,
+    "acc": 0.855,
+    "auroc_clean": 0.975,
+    "auroc_attacked": 0.7574,
+    "auroc_per_domain": {
+      "abstracts": 0.6679,
+      "books": null
+    },
+    "official_baselines": {
+      "roberta_openai_gpt2_detector": {
+        "model": "openai-community/roberta-base-openai-detector",
+        "auroc": 0.8143,
+        "acc": 0.6975
+      },
+      "roberta_chatgpt_detector_hc3": {
+        "model": "Hello-SimpleAI/chatgpt-detector-roberta",
+        "auroc": 0.6336,
+        "acc": 0.6388
+      }
+    }
+  },
+  "image_head_training_report": {
+    "train": {
+      "n": 23997,
+      "acc": 0.8859024044672251,
+      "f1": 0.8856498496491815,
+      "auroc": 0.9566425078491846,
+      "ece": 0.05704158555782698
+    },
+    "img_test": {
+      "n": 1996,
+      "acc": 0.9103206412825652,
+      "f1": 0.9058390320883746,
+      "auroc": 0.9799226907630523,
+      "ece": 0.03676283916070434
+    },
+    "img_test_clean_only": {
+      "n": 998,
+      "acc": 0.9098196392785571,
+      "f1": 0.9056603773584906,
+      "auroc": 0.9796907630522088,
+      "ece": 0.03980751066320074
+    },
+    "img_test_degraded_only": {
+      "n": 998,
+      "acc": 0.9108216432865731,
+      "f1": 0.9060190073917634,
+      "auroc": 0.9803935742971888,
+      "ece": 0.033718167658207926
+    },
+    "sid_test": {
+      "n": 1000,
+      "acc": 0.961,
+      "f1": 0.9614243323442137,
+      "auroc": 0.9920640000000001,
+      "ece": 0.07602317498611215
+    }
+  },
+  "tamper_head_training_report": {
+    "synthetic_openfake": {
+      "patch_auroc": 0.8754908154256765,
+      "image_auroc_edited_vs_clean": 0.8945258947436331,
+      "mean_patch_iou_on_edited": 0.23356160521507263,
+      "n_test_edited": 498,
+      "n_test_clean": 498
+    },
+    "sid_set": {
+      "patch_auroc": 0.8508621703146169,
+      "image_auroc_edited_vs_clean": 0.8718269999999999,
+      "mean_patch_iou_on_edited": 0.2835037410259247,
+      "n_test_edited": 500,
+      "n_test_clean": 1000
+    }
+  },
+  "fusion_head_training_report": {
+    "calib_n": 1583,
+    "eval_n": 1413,
+    "tau": 0.69,
+    "tamper_flag": 0.901,
+    "calib_accuracy_all": 0.8073,
+    "calib_coverage_at_tau": 0.698,
+    "calib_accuracy_on_decided": 0.9014,
+    "coefficients": {
+      "ai_generated": {
+        "p_ai": 1.962,
+        "tamper_top8": -1.076,
+        "tamper_mean": -0.651,
+        "tamper_frac50": 0.316,
+        "ela": -0.213,
+        "noise": 0.412,
+        "meta_generator": 0.0,
+        "meta_editor": 0.0,
+        "meta_camera": 0.0
+      },
+      "edited": {
+        "p_ai": -0.496,
+        "tamper_top8": 1.842,
+        "tamper_mean": 0.524,
+        "tamper_frac50": -0.449,
+        "ela": 0.372,
+        "noise": -0.373,
+        "meta_generator": 0.0,
+        "meta_editor": 0.0,
+        "meta_camera": 0.0
+      },
+      "real": {
+        "p_ai": -1.466,
+        "tamper_top8": -0.767,
+        "tamper_mean": 0.127,
+        "tamper_frac50": 0.133,
+        "ela": -0.159,
+        "noise": -0.04,
+        "meta_generator": 0.0,
+        "meta_editor": 0.0,
+        "meta_camera": 0.0
+      }
+    }
+  },
+  "audio_head_training_report": {
+    "train": {
+      "n": 2952,
+      "acc": 0.9664634146341463,
+      "f1": 0.959674134419552,
+      "auroc": 0.9946356073211314,
+      "ece": 0.132475570366765
+    },
+    "aud_test": {
+      "n": 434,
+      "acc": 0.9861751152073732,
+      "f1": 0.9905362776025236,
+      "auroc": 0.9997289091303404,
+      "ece": 0.16719903488677038
+    },
+    "aud_test_clean_only": {
+      "n": 217,
+      "acc": 0.9953917050691244,
+      "f1": 0.9968652037617555,
+      "auroc": 1.0,
+      "ece": 0.16230430444528043
+    },
+    "aud_test_degraded_only": {
+      "n": 217,
+      "acc": 0.9769585253456221,
+      "f1": 0.9841269841269841,
+      "auroc": 0.9994578182606809,
+      "ece": 0.17209376532826004
+    },
+    "aud_test_unseen": {
+      "n": 462,
+      "acc": 0.8722943722943723,
+      "f1": 0.9073783359497645,
+      "auroc": 0.9797937014151883,
+      "ece": 0.11254661470614724
+    },
+    "aud_test_unseen_clean_only": {
+      "n": 231,
+      "acc": 0.8831168831168831,
+      "f1": 0.9158878504672897,
+      "auroc": 0.978174207693841,
+      "ece": 0.10816988749179147
+    },
+    "aud_test_unseen_degraded_only": {
+      "n": 231,
+      "acc": 0.8614718614718615,
+      "f1": 0.8987341772151899,
+      "auroc": 0.9815626868646602,
+      "ece": 0.1169233419205029
+    }
+  },
+  "text_head_training_report": {
+    "train": {
+      "n": 4000,
+      "acc": 0.87225,
+      "f1": 0.860344356381525,
+      "auroc": 0.9288240000000001,
+      "ece": 0.06786845125575255
+    },
+    "txt_test": {
+      "n": 800,
+      "acc": 0.855,
+      "f1": 0.8567901234567902,
+      "auroc": 0.8825625,
+      "ece": 0.11339233944798528
+    },
+    "txt_test_clean_only": {
+      "n": 560,
+      "acc": 0.9035714285714286,
+      "f1": 0.8977272727272727,
+      "auroc": 0.9749617346938775,
+      "ece": 0.10919816435684988
+    },
+    "txt_test_degraded_only": {
+      "n": 240,
+      "acc": 0.7416666666666667,
+      "f1": 0.7801418439716312,
+      "auroc": 0.7574305555555556,
+      "ece": 0.198166410657669
+    }
+  }
+}

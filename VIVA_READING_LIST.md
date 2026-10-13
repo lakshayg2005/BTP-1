@@ -149,11 +149,24 @@ IDs marked ✓ were checked online on 2026-10-08/11; IDs marked (check) are from
 Per-generator AI-image AUROC (OpenFake test): GPT-image-1.5 0.995, Midjourney-7 0.965, Sora-2 0.989, Veo-3 0.982,
 Flux.2-klein 0.969, Seedream-5 0.999, Recraft-v3 0.907 (lowest).
 
+### Final 3-way results (learned fusion, evaluation of 2026-10-13, held-out eval half only)
+
+| Test set | n | Coverage (answers given) | Accuracy on answered | Recall real / edited / AI |
+|---|---|---|---|---|
+| **SID-Set** (CVPR 2025 benchmark) | 696 | 69.7% | **88.9%** | 53.5% / 40.8% / 92.2% |
+| OpenFake + our synthetic edits | 717 | 70.0% | **91.4%** | 52.4% / 57.6% / 82.6% |
+
+Fusion: multinomial logistic regression on 9 detector scores, trained on the calibration half (n=1583);
+"uncertain" when its top probability < tau = 0.69 (chosen to keep >= 90% accuracy on answered calibration cases).
+Before the fix (hand-set thresholds): real recall 0.2%, accuracy on answered 63%.
+LLM explanation faithfulness: 8.3% pass (n=24), so the demo defaults to the evidence-only explainer (faithful by construction).
+All numbers: `results/final/summary.md`; per-image scores: `results/final/image_rows_*.csv`.
+
 ### Lessons from the first full evaluation (be ready to discuss)
-- **Hand-set 3-way thresholds failed:** real-photo recall was 0.2%, and most real photos were called "edited", because the
+- **Hand-set 3-way thresholds failed (fixed, see table above):** real-photo recall was 0.2%, and most real photos were called "edited", because the
   edit signals (especially classical noise/ELA) are high on untouched photos too. Fix: a **learned 3-class fusion**
   trained on a held-out *calibration half* of the test sets, with results reported on the other half; ELA and noise were
-  demoted to context-only evidence. (Re-run pending.)
+  demoted to context-only evidence. 
 - **LLM explanations:** only 12.5% of Qwen2.5-1.5B drafts passed the faithfulness check; the checker caught the rest
   and the system fell back to the evidence-only explanation. Conclusion: small LLMs hallucinate even when given only
-  evidence, so an automatic faithfulness check is necessary. (Prompt now uses short [E1] tags; re-run pending.)
+  evidence, so an automatic faithfulness check is necessary. (Short [E1] tags did not help: 8.3% on re-run.)
